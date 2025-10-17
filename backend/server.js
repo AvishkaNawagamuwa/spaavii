@@ -142,7 +142,18 @@ io.on('connection', (socket) => {
 // Make io available to routes
 app.set('io', io);
 
+// Test email connection on server startup
+const { testEmailConnection } = require('./utils/emailService');
+testEmailConnection().then(success => {
+  if (success) {
+    console.log('📧 Email service ready: lankaspaassociation25@gmail.com');
+  } else {
+    console.log('⚠️ Email service not available - check .env configuration');
+  }
+});
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on http://localhost:${PORT} with Socket.io enabled`);
   console.log(`🔗 Test the server at: http://localhost:${PORT}/api/auth/test`);
+  console.log(`📧 Email notifications: ${process.env.EMAIL_USER ? 'Enabled' : 'Disabled'}`);
 });

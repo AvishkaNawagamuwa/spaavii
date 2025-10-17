@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
+const { getSpaStatusAndAccess } = require('../utils/spaStatusChecker');
 const router = express.Router();
 
 // JWT Secret (should be in environment variables in production)
@@ -73,6 +74,44 @@ router.post('/login', async (req, res) => {
             }
 
             console.log('Login successful for user:', username);
+
+            // For admin_spa role, check spa status before allowing login
+            if (user.role === 'admin_spa' && user.spa_id) {
+                console.log('Checking spa status for spa_id:', user.spa_id);
+
+                const spaStatusCheck = await getSpaStatusAndAccess(user.spa_id);
+
+                if (!spaStatusCheck.success) {
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Error checking spa status'
+                    });
+                }
+
+                if (!spaStatusCheck.canLogin) {
+                    let statusMessage = spaStatusCheck.statusMessage;
+
+                    // Customize message based on status
+                    if (spaStatusCheck.spa.status === 'pending') {
+                        statusMessage = 'Your spa registration is pending approval. Please wait for LSA verification.';
+                    } else if (spaStatusCheck.spa.status === 'blacklisted') {
+                        statusMessage = 'Your account has been suspended by the admin panel. Please contact LSA administration.';
+                    }
+
+                    return res.status(403).json({
+                        success: false,
+                        message: statusMessage,
+                        spa_status: spaStatusCheck.spa.status,
+                        access_denied: true
+                    });
+                }
+
+                // Add spa status info to user object for frontend
+                user.spa_status = spaStatusCheck.spa.status;
+                user.access_level = spaStatusCheck.accessLevel;
+                user.allowed_tabs = spaStatusCheck.allowedTabs;
+                user.status_message = spaStatusCheck.statusMessage;
+            }
 
             // Update last login time
             await connection.execute(
@@ -178,6 +217,104 @@ router.get('/verify', async (req, res) => {
         res.status(401).json({
             success: false,
             message: 'Invalid token'
+        });
+    }
+});
+
+// Get navigation items based on spa status
+router.get('/navigation/:spa_id', async (req, res) => {
+    try {
+        const { spa_id } = req.params;
+        const token = req.header('Authorization')?.replace('Bearer ', '');
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: 'No token provided'
+            });
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        // Verify the spa_id belongs to the authenticated user
+        if (decoded.spa_id != spa_id) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied to this spa'
+            });
+        }
+
+        const { getFilteredNavigation } = require('../utils/spaStatusChecker');
+        const navigationData = await getFilteredNavigation(spa_id);
+
+        if (!navigationData.success) {
+            return res.status(500).json({
+                success: false,
+                message: navigationData.error
+            });
+        }
+
+        res.json({
+            success: true,
+            navigation: navigationData.navItems,
+            statusInfo: navigationData.statusInfo
+        });
+
+    } catch (error) {
+        console.error('Navigation error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error retrieving navigation items'
+        });
+    }
+});
+
+// Check spa status endpoint
+router.get('/spa-status/:spa_id', async (req, res) => {
+    try {
+        const { spa_id } = req.params;
+        const token = req.header('Authorization')?.replace('Bearer ', '');
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: 'No token provided'
+            });
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        // Verify the spa_id belongs to the authenticated user
+        if (decoded.spa_id != spa_id) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied to this spa'
+            });
+        }
+
+        const spaStatusCheck = await getSpaStatusAndAccess(spa_id);
+
+        if (!spaStatusCheck.success) {
+            return res.status(500).json({
+                success: false,
+                message: spaStatusCheck.error
+            });
+        }
+
+        res.json({
+            success: true,
+            spa: spaStatusCheck.spa,
+            accessLevel: spaStatusCheck.accessLevel,
+            allowedTabs: spaStatusCheck.allowedTabs,
+            statusMessage: spaStatusCheck.statusMessage,
+            canLogin: spaStatusCheck.canLogin
+        });
+
+    } catch (error) {
+        console.error('Spa status check error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error checking spa status'
         });
     }
 });

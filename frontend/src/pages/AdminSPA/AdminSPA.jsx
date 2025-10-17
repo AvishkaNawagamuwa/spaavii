@@ -19,12 +19,16 @@ import {
 } from 'react-icons/fi';
 import assets from '../../assets/images/images';
 
+// Import contexts
+import { SpaStatusProvider, useSpaStatus } from '../../contexts/SpaStatusContext';
+
 // Import components
 import Dashboard from './Dashboard';
 import PaymentPlans from './PaymentPlans';
 import SpaProfile from './SpaProfile';
 import NotificationHistory from './NotificationHistory';
 import ResubmitApplication from './ResubmitApplication';
+import ResignTerminate from './ResignTerminate';
 
 // AddTherapist Component with NNF Flow and Enhanced Validation
 const AddTherapist = () => {
@@ -1620,490 +1624,8 @@ const ViewTherapists = () => {
     );
 };
 
-// ResignTerminate Component with Dynamic Database Integration
-const ResignTerminate = () => {
-    const [showTerminateModal, setShowTerminateModal] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedTherapist, setSelectedTherapist] = useState(null);
-    const [terminateReason, setTerminateReason] = useState('');
-    const [therapists, setTherapists] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-
-    // Get spa_id from logged-in user data
-    const getUserSpaId = () => {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            try {
-                const user = JSON.parse(userData);
-                return user.spa_id || '1';
-            } catch (error) {
-                console.error('Error parsing user data:', error);
-                return '1';
-            }
-        }
-        return '1';
-    };
-    const spaId = getUserSpaId();
-
-    // Fetch approved therapists from database
-    const fetchApprovedTherapists = async () => {
-        const token = localStorage.getItem('token');
-
-        if (!token || token === 'null' || token === 'undefined') {
-            console.error('🔑 Invalid token for approved therapists request:', token);
-            console.log('❌ No valid token found, redirecting to login');
-            setError('Authentication required. Please log in again.');
-            setTherapists([]);
-            // Redirect to login
-            window.location.href = '/login';
-            return;
-        }
-
-        if (!spaId) {
-            console.error('🏢 No spa_id available for approved therapists request');
-            setError('Spa information not available. Please refresh the page.');
-            setTherapists([]);
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-        try {
-            console.log(`🔍 Fetching approved therapists for SPA ${spaId}`);
-            console.log(`🔑 Frontend token check:`, {
-                tokenExists: !!token,
-                tokenLength: token?.length,
-                tokenStart: token?.substring(0, 15) + '...'
-            });
-
-            const response = await fetch(`/api/admin-spa-new/spas/${spaId}/therapists?status=approved`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            console.log(`📡 Response status: ${response.status} ${response.statusText}`);
-            const data = await response.json();
-
-            if (data.success) {
-                setTherapists(data.therapists || []);
-            } else {
-                setError('Failed to fetch approved therapists');
-                setTherapists([]);
-            }
-        } catch (err) {
-            console.error('Error fetching approved therapists:', err);
-            setError('Network error. Please check your connection.');
-            setTherapists([]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Load therapists on component mount
-    useEffect(() => {
-        fetchApprovedTherapists();
-    }, [spaId]);
-
-    const handleResign = (therapist) => {
-        const therapistName = `${therapist.first_name} ${therapist.last_name}` || therapist.name;
-
-        Swal.fire({
-            title: 'Confirm Resignation',
-            text: `Are you sure you want to resign ${therapistName}?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#f59e0b',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, Resign'
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const response = await fetch(`/api/admin-spa-new/therapists/${therapist.id}/status`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            status: 'resigned',
-                            reason: 'Voluntary resignation',
-                            spa_id: spaId
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        Swal.fire({
-                            title: 'Resigned!',
-                            text: `${therapistName} has been resigned successfully.`,
-                            icon: 'success',
-                            confirmButtonColor: '#0A1428'
-                        });
-                        // Refresh the therapist list
-                        fetchApprovedTherapists();
-                    } else {
-                        throw new Error(data.message || 'Failed to update therapist status');
-                    }
-                } catch (error) {
-                    console.error('Error resigning therapist:', error);
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Failed to resign therapist. Please try again.',
-                        icon: 'error',
-                        confirmButtonColor: '#0A1428'
-                    });
-                }
-            }
-        });
-    };
-
-    const handleTerminate = (therapist) => {
-        setSelectedTherapist(therapist);
-        setShowTerminateModal(true);
-    };
-
-    const submitTermination = async () => {
-        if (!terminateReason.trim()) {
-            Swal.fire({
-                title: 'Reason Required',
-                text: 'Please provide a reason for termination.',
-                icon: 'warning',
-                confirmButtonColor: '#0A1428'
-            });
-            return;
-        }
-
-        const therapistName = `${selectedTherapist.first_name} ${selectedTherapist.last_name}` || selectedTherapist.name;
-
-        try {
-            const response = await fetch(`/api/admin-spa-new/therapists/${selectedTherapist.id}/status`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    status: 'terminated',
-                    reason: terminateReason.trim(),
-                    spa_id: spaId
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                Swal.fire({
-                    title: 'Terminated!',
-                    text: `${therapistName} has been terminated successfully.`,
-                    icon: 'success',
-                    confirmButtonColor: '#0A1428'
-                });
-
-                // Refresh the therapist list
-                fetchApprovedTherapists();
-
-                // Close modal and reset
-                setShowTerminateModal(false);
-                setTerminateReason('');
-                setSelectedTherapist(null);
-            } else {
-                throw new Error(data.message || 'Failed to terminate therapist');
-            }
-        } catch (error) {
-            console.error('Error terminating therapist:', error);
-            Swal.fire({
-                title: 'Error!',
-                text: 'Failed to terminate therapist. Please try again.',
-                icon: 'error',
-                confirmButtonColor: '#0A1428'
-            });
-        }
-    };
-
-    // Format therapist data and filter
-    const filteredTherapists = therapists
-        .map(therapist => ({
-            ...therapist,
-            name: therapist.first_name && therapist.last_name
-                ? `${therapist.first_name} ${therapist.last_name}`
-                : therapist.name || 'Unknown',
-            nic: therapist.nic_number || therapist.nic,
-            specialization: Array.isArray(therapist.specializations)
-                ? therapist.specializations.join(', ')
-                : (therapist.specializations ? therapist.specializations : 'General Therapy')
-        }))
-        .filter(t =>
-            t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.nic.includes(searchTerm) ||
-            t.specialization.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-
-    return (
-        <div className="max-w-6xl mx-auto p-6">
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-                <div className="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-800">Manage Staff - Resign/Terminate</h2>
-                        <p className="text-gray-600 mt-1">Manage approved therapists - resign or terminate</p>
-                    </div>
-                    <div className="text-sm text-gray-500">{filteredTherapists.length} approved therapist(s)</div>
-                </div>
-
-                <input
-                    type="text"
-                    placeholder="Search by NIC, email, or name..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A1428] outline-none"
-                />
-
-                {/* Loading State */}
-                {loading && (
-                    <div className="flex justify-center items-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#0A1428] border-t-transparent"></div>
-                        <span className="ml-2 text-gray-600">Loading approved therapists...</span>
-                    </div>
-                )}
-
-                {/* Error State */}
-                {error && !loading && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                        <div className="flex items-center">
-                            <span className="text-red-500 mr-2">⚠️</span>
-                            <p className="text-red-700">{error}</p>
-                            <button
-                                onClick={fetchApprovedTherapists}
-                                className="ml-auto text-red-600 hover:text-red-800 font-medium"
-                            >
-                                Retry
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredTherapists.map((therapist) => (
-                        <div key={therapist.therapist_id} className="bg-gray-50 rounded-xl p-6">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-12 h-12 bg-[#0A1428] rounded-full flex items-center justify-center text-white font-semibold">
-                                    {therapist.name.split(' ').map(n => n[0]).join('')}
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-gray-900">{therapist.name}</h3>
-                                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="text-sm text-gray-600 mb-4">
-                                <div>Email: {therapist.email}</div>
-                                <div>NIC: {therapist.nic}</div>
-                                <div>Specialty: {therapist.specialization}</div>
-                            </div>
-                            <div className="flex space-x-2">
-                                <button
-                                    onClick={() => handleResign(therapist)}
-                                    className="flex-1 bg-orange-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-orange-600"
-                                >
-                                    Resign
-                                </button>
-                                <button
-                                    onClick={() => handleTerminate(therapist)}
-                                    className="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-600"
-                                >
-                                    Terminate
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* No Results */}
-                {!loading && filteredTherapists.length === 0 && (
-                    <div className="text-center py-12">
-                        <div className="text-gray-400 mb-4 text-6xl">👥</div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No approved therapists found</h3>
-                        <p className="text-gray-600">
-                            {searchTerm
-                                ? 'No therapists match your search criteria.'
-                                : 'No approved therapists available for resignation or termination.'
-                            }
-                        </p>
-                    </div>
-                )}
-
-                {/* Terminate Modal with Required Reason */}
-                {showTerminateModal && selectedTherapist && (
-                    <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-                            <div className="text-center mb-6">
-                                <h3 className="text-xl font-bold text-gray-800 mb-2">Terminate {selectedTherapist.name}</h3>
-                                <p className="text-gray-600">This action will be saved directly to the database</p>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Termination Reason (Required)
-                                    </label>
-                                    <textarea
-                                        value={terminateReason}
-                                        onChange={(e) => setTerminateReason(e.target.value)}
-                                        rows="4"
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A1428] outline-none resize-none"
-                                        placeholder="Enter detailed reason for termination..."
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex space-x-3 mt-6">
-                                <button
-                                    onClick={() => {
-                                        setShowTerminateModal(false);
-                                        setTerminateReason('');
-                                        setSelectedTherapist(null);
-                                    }}
-                                    className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium hover:bg-gray-300"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={submitTermination}
-                                    disabled={!terminateReason.trim()}
-                                    className="flex-1 bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Confirm Termination
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-// Quick Access Profile Component
-const QuickProfile = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const profileData = {
-        spaName: 'Ayura Wellness Spa',
-        currentPlan: 'Annual (Expires: Dec 03, 2025)',
-        usage: '24 Therapists | 18 Active Services',
-        owner: 'Dr. Samantha Perera'
-    };
-
-    const handleLogout = () => {
-        Swal.fire({
-            title: 'Confirm Logout',
-            text: 'Are you sure you want to logout from your SPA Dashboard?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#0A1428',
-            cancelButtonColor: '#6B7280',
-            confirmButtonText: 'Yes, Logout',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Clear authentication data
-                localStorage.removeItem('userData');
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('userRole');
-                localStorage.removeItem('spaId');
-
-                // Show success message
-                Swal.fire({
-                    title: 'Logged Out Successfully',
-                    text: 'You have been logged out from SPA Dashboard',
-                    icon: 'success',
-                    confirmButtonColor: '#0A1428',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-
-                // Navigate to home page
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 1000);
-            }
-        });
-    };
-
-    return (
-        <div className="relative">
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-10 h-10 bg-[#D4AF37] rounded-full flex items-center justify-center text-white font-bold hover:bg-[#b8941f] transition-colors"
-            >
-                A
-            </button>
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-
-            {isOpen && (
-                <>
-                    <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsOpen(false)}
-                    ></div>
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                        {/* Profile Header */}
-                        <div className="px-4 py-3 border-b border-gray-100">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-12 h-12 bg-[#D4AF37] rounded-full flex items-center justify-center text-white font-bold text-lg">
-                                    A
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-gray-800">{profileData.spaName}</h3>
-                                    <p className="text-sm text-gray-600">{profileData.owner}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* System Details */}
-                        <div className="px-4 py-3 border-b border-gray-100">
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Current Plan:</span>
-                                    <span className="font-medium text-green-600">Annual</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Expires:</span>
-                                    <span className="text-gray-800">Dec 03, 2025</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Therapists:</span>
-                                    <span className="text-gray-800">24 Active</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Services:</span>
-                                    <span className="text-gray-800">18 Active</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="px-2 py-2">
-                            <button
-                                onClick={handleLogout}
-                                className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors flex items-center"
-                            >
-                                <FiLogOut className="mr-2" size={16} />
-                                Logout
-                            </button>
-                        </div>
-                    </div>
-                </>
-            )}
-        </div>
-    );
-};
-
-const AdminSPA = () => {
+// Main AdminSPA Component with Status Management
+const AdminSPAContent = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('dashboard');
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -2193,19 +1715,56 @@ const AdminSPA = () => {
         };
     }, [showNotifications]);
 
-    // Navigation items
-    const navItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: <FiHome size={20} /> },
-        { id: 'payment-plans', label: 'Payment Plans', icon: <FiCreditCard size={20} /> },
-        { id: 'notification-history', label: 'Notification History', icon: <FiBell size={20} /> },
-        { id: 'add-therapist', label: 'Add Therapist', icon: <FiUserPlus size={20} /> },
-        { id: 'view-therapists', label: 'View Therapists', icon: <FiUsers size={20} /> },
-        { id: 'resign-terminate', label: 'Manage Staff', icon: <FiFilter size={20} /> },
-        { id: 'resubmit-application', label: 'Resubmit Application', icon: <FiX size={20} /> },
-        { id: 'spa-profile', label: 'Spa Profile', icon: <FiSettings size={20} /> },
-    ];
+    // Get status-based navigation from context
+    const { spaStatus, isTabAllowed, getNavigationItems } = useSpaStatus();
+
+    // Set initial tab based on allowed tabs
+    useEffect(() => {
+        if (!spaStatus.loading && spaStatus.allowedTabs.length > 0) {
+            // If current activeTab is not allowed, switch to first allowed tab
+            if (!isTabAllowed(activeTab)) {
+                setActiveTab(spaStatus.allowedTabs[0]);
+            }
+        }
+    }, [spaStatus.loading, spaStatus.allowedTabs, activeTab, isTabAllowed]);
+
+    // Use status-based navigation items
+    const navItems = getNavigationItems();
+
+    // Map icon strings to actual icon components
+    const getIconComponent = (iconName) => {
+        const iconMap = {
+            'FiHome': <FiHome size={20} />,
+            'FiCreditCard': <FiCreditCard size={20} />,
+            'FiBell': <FiBell size={20} />,
+            'FiUserPlus': <FiUserPlus size={20} />,
+            'FiUsers': <FiUsers size={20} />,
+            'FiFilter': <FiFilter size={20} />,
+            'FiX': <FiX size={20} />,
+            'FiSettings': <FiSettings size={20} />
+        };
+        return iconMap[iconName] || <FiSettings size={20} />;
+    };
 
     const renderContent = () => {
+        // Check if the current tab is allowed
+        if (!isTabAllowed(activeTab)) {
+            return (
+                <div className="flex items-center justify-center h-full">
+                    <div className="text-center p-8">
+                        <div className="text-6xl mb-4">🚫</div>
+                        <h2 className="text-2xl font-bold text-gray-700 mb-2">Access Restricted</h2>
+                        <p className="text-gray-500 mb-4">
+                            You don't have permission to access this section.
+                        </p>
+                        <p className="text-sm text-gray-400">
+                            Status: {spaStatus.status} | {spaStatus.statusMessage}
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
         switch (activeTab) {
             case 'dashboard':
                 return <Dashboard />;
@@ -2224,7 +1783,17 @@ const AdminSPA = () => {
             case 'spa-profile':
                 return <SpaProfile />;
             default:
-                return <Dashboard />;
+                // Redirect to first allowed tab
+                const firstAllowedTab = spaStatus.allowedTabs[0];
+                if (firstAllowedTab && firstAllowedTab !== activeTab) {
+                    setActiveTab(firstAllowedTab);
+                }
+                return <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0A1428] mx-auto"></div>
+                        <p className="mt-4 text-gray-600">Loading...</p>
+                    </div>
+                </div>;
         }
     };
 
@@ -2279,9 +1848,51 @@ const AdminSPA = () => {
     };
 
     const handleNavClick = (item) => {
-        setActiveTab(item.id);
-        setIsMobileSidebarOpen(false);
+        // Check if tab is allowed before navigating
+        if (isTabAllowed(item.id)) {
+            setActiveTab(item.id);
+            setIsMobileSidebarOpen(false);
+        } else {
+            Swal.fire({
+                title: 'Access Restricted',
+                text: 'You don\'t have permission to access this section.',
+                icon: 'warning',
+                confirmButtonColor: '#0A1428'
+            });
+        }
     };
+
+    // Show loading state while spa status is being fetched
+    if (spaStatus.loading) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#0A1428] mx-auto"></div>
+                    <p className="mt-4 text-gray-600 text-lg">Loading your dashboard...</p>
+                    <p className="text-sm text-gray-500 mt-2">Checking spa status and permissions</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state if there's an error fetching spa status
+    if (spaStatus.error) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-6xl mb-4">⚠️</div>
+                    <h2 className="text-2xl font-bold text-gray-700 mb-2">Error Loading Dashboard</h2>
+                    <p className="text-gray-500 mb-4">{spaStatus.error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="bg-[#0A1428] text-white px-6 py-2 rounded-lg hover:bg-[#001F3F] transition-colors"
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen bg-gray-100">
@@ -2350,7 +1961,7 @@ const AdminSPA = () => {
                   `}
                                     title={!isSidebarOpen ? item.label : ''}
                                 >
-                                    <span className="flex-shrink-0">{item.icon}</span>
+                                    <span className="flex-shrink-0">{getIconComponent(item.icon)}</span>
                                     <span className={`ml-3 transition-all duration-300 ${!isSidebarOpen ? 'opacity-0 absolute' : 'opacity-100'}`}>
                                         {item.label}
                                     </span>
@@ -2462,10 +2073,72 @@ const AdminSPA = () => {
                                     </div>
                                 )}
                             </div>
-                            <QuickProfile />
+                            {/* User Profile */}
+                            <div className="flex items-center space-x-3">
+                                <div className="text-right">
+                                    <p className="text-sm font-medium text-gray-700">
+                                        {(() => {
+                                            const userData = localStorage.getItem('user');
+                                            if (userData) {
+                                                const user = JSON.parse(userData);
+                                                return user.full_name || 'User';
+                                            }
+                                            return 'User';
+                                        })()}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                        {spaStatus.status ? spaStatus.status.charAt(0).toUpperCase() + spaStatus.status.slice(1) : 'Loading...'}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={handleLogout}
+                                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Logout"
+                                >
+                                    <FiLogOut size={20} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </header>
+
+                {/* SPA Status Indicator */}
+                {spaStatus.status && spaStatus.status !== 'verified' && (
+                    <div className={`px-6 py-3 border-l-4 ${spaStatus.status === 'pending' ? 'bg-yellow-50 border-yellow-400 text-yellow-800' :
+                            spaStatus.status === 'rejected' ? 'bg-red-50 border-red-400 text-red-800' :
+                                spaStatus.status === 'unverified' ? 'bg-blue-50 border-blue-400 text-blue-800' :
+                                    spaStatus.status === 'blacklisted' ? 'bg-gray-50 border-gray-400 text-gray-800' :
+                                        'bg-gray-50 border-gray-400 text-gray-800'
+                        }`}>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <span className="text-sm font-medium">
+                                    Status: {spaStatus.status.charAt(0).toUpperCase() + spaStatus.status.slice(1)}
+                                </span>
+                                <span className="mx-2">•</span>
+                                <span className="text-sm">
+                                    {spaStatus.statusMessage}
+                                </span>
+                            </div>
+                            {spaStatus.status === 'rejected' && (
+                                <button
+                                    onClick={() => setActiveTab('resubmit-application')}
+                                    className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors"
+                                >
+                                    Resubmit Application
+                                </button>
+                            )}
+                            {spaStatus.status === 'unverified' && (
+                                <button
+                                    onClick={() => setActiveTab('payment-plans')}
+                                    className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+                                >
+                                    Complete Payment
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Content Area */}
                 <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
@@ -2473,6 +2146,15 @@ const AdminSPA = () => {
                 </main>
             </div>
         </div>
+    );
+};
+
+// Wrapper component with SPA Status Provider
+const AdminSPA = () => {
+    return (
+        <SpaStatusProvider>
+            <AdminSPAContent />
+        </SpaStatusProvider>
     );
 };
 

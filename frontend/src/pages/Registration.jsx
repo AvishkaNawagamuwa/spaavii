@@ -125,7 +125,7 @@ const PrerequisitesStep = ({
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-primary-dark mb-3">Registration Prerequisites</h2>
         <p className="text-gray-600 max-w-2xl mx-auto">
-          Please confirm that you have all the required documents ready before proceeding. All items are compulsory for registration.
+          Please confirm that you have all the required documents ready and agree to our terms before proceeding. All items are compulsory for registration.
         </p>
       </div>
 
@@ -135,53 +135,43 @@ const PrerequisitesStep = ({
             {
               id: "prereq1",
               name: "doc1",
-              label: "Valid Government Issued ID (NIC/Passport/Driving License)",
+              label: "NIC (National Identity Card)",
               compulsory: true,
             },
             {
               id: "prereq2",
               name: "doc2",
-              label: "Business Registration Certificate",
+              label: "BR/Form 1 (Business Registration Certificate)",
               compulsory: true,
             },
             {
               id: "prereq3",
               name: "doc3",
-              label: "Tax Registration Documents",
+              label: "Spa Banner Image",
               compulsory: true,
             },
             {
               id: "prereq4",
               name: "doc4",
-              label: "Spa Facility Photos (Minimum 5)",
+              label: "Spa Facility Photos",
               compulsory: true,
             },
             {
               id: "prereq5",
               name: "doc5",
-              label: "Professional Certifications of Staff",
-              compulsory: true,
-            },
-            {
-              id: "prereq6",
-              name: "doc6",
-              label: "Form 1: Pvt Thanipudgala Wiyapara > Pvt > Form 1 (Compulsory)",
+              label: "I agree with the rules and regulations",
               compulsory: true,
               highlight: true,
-            },
-            {
-              id: "prereq7",
-              name: "doc7",
-              label: "Spa Photos Banner",
-              compulsory: true,
-              highlight: true,
+              important: true,
             },
           ].map((item, index) => (
             <div
               key={index}
-              className={`flex items-start p-4 rounded-lg bg-white border transition-colors duration-300 ${item.highlight
-                ? 'border-gold-light bg-gold-light bg-opacity-5 hover:border-gold'
-                : 'border-gray-200 hover:border-gold'
+              className={`flex items-start p-4 rounded-lg bg-white border transition-colors duration-300 ${item.important
+                  ? 'border-red-300 bg-red-50 hover:border-red-400 shadow-lg ring-2 ring-red-200'
+                  : item.highlight
+                    ? 'border-gold-light bg-gold-light bg-opacity-5 hover:border-gold'
+                    : 'border-gray-200 hover:border-gold'
                 }`}
             >
               <div className="flex items-center h-5">
@@ -191,16 +181,31 @@ const PrerequisitesStep = ({
                   name={item.name}
                   checked={prerequisites[item.name]}
                   onChange={onPrerequisiteChange}
-                  className="w-5 h-5 text-gold focus:ring-gold border-gray-300 rounded"
+                  className={`w-5 h-5 focus:ring-2 border-gray-300 rounded ${item.important
+                      ? 'text-red-600 focus:ring-red-500'
+                      : 'text-gold focus:ring-gold'
+                    }`}
                   required
                 />
               </div>
-              <label htmlFor={item.id} className="ml-3 text-gray-700 flex-1">
+              <label htmlFor={item.id} className={`ml-3 flex-1 ${item.important
+                  ? 'text-red-800 font-semibold'
+                  : 'text-gray-700'
+                }`}>
+                {item.important && (
+                  <i className="fas fa-exclamation-triangle text-red-600 mr-2"></i>
+                )}
                 {item.label}
                 {item.compulsory && (
                   <span className="text-red-500 ml-1 font-semibold">*</span>
                 )}
-                {item.highlight && (
+                {item.important && (
+                  <div className="mt-2 text-sm text-red-700 bg-red-100 p-2 rounded border border-red-200">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    By checking this box, you acknowledge that you have read, understood, and agree to abide by all our terms, conditions, and regulations.
+                  </div>
+                )}
+                {item.highlight && !item.important && (
                   <span className="inline-block ml-2 px-2 py-1 text-xs bg-gold text-primary-dark rounded-full font-semibold">
                     NEW
                   </span>
@@ -218,8 +223,7 @@ const PrerequisitesStep = ({
             <div className="ml-3">
               <h4 className="text-sm font-semibold text-blue-800">Important Notice</h4>
               <p className="text-sm text-blue-700 mt-1">
-                All documents must be current and valid. Form 1 certificate is mandatory for private entities.
-                Ensure all documents are clear and readable before upload.
+                Please ensure you have your NIC, Business Registration Certificate (BR/Form 1), Spa Banner Image, and Spa Facility Photos ready before proceeding. Most importantly, carefully read and agree to our terms and regulations.
               </p>
             </div>
           </div>
@@ -1270,13 +1274,11 @@ const PaymentStep = ({ onBack, onPaymentSuccess, userDetails }) => {
 const Registration = () => {
   const [step, setStep] = useState(1);
   const [prerequisites, setPrerequisites] = useState({
-    doc1: false,
-    doc2: false,
-    doc3: false,
-    doc4: false,
-    doc5: false,
-    doc6: false, // Form 1 certificate
-    doc7: false, // Spa photos banner
+    doc1: false, // NIC
+    doc2: false, // BR/Form 1
+    doc3: false, // Spa Banner image
+    doc4: false, // Spa facility photos
+    doc5: false, // Rules and regulations agreement
   });
 
   const [userDetails, setUserDetails] = useState({

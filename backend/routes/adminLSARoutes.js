@@ -1287,15 +1287,14 @@ router.get('/enhanced/financial/monthly', async (req, res) => {
     try {
         const { year = new Date().getFullYear() } = req.query;
 
+        // Only fetch annual payment data for the financial dashboard
         const [financialData] = await db.execute(`
       SELECT 
         MONTH(created_at) as month,
-        SUM(CASE WHEN payment_type = 'registration' THEN amount ELSE 0 END) as registration_fees,
         SUM(CASE WHEN payment_type = 'annual' THEN amount ELSE 0 END) as annual_fees,
-        SUM(CASE WHEN payment_type = 'monthly' THEN amount ELSE 0 END) as monthly_fees,
-        COUNT(*) as total_payments
+        COUNT(CASE WHEN payment_type = 'annual' THEN 1 END) as total_payments
       FROM payments 
-      WHERE payment_status = 'completed' AND YEAR(created_at) = ?
+      WHERE payment_status = 'completed' AND YEAR(created_at) = ? AND payment_type = 'annual'
       GROUP BY MONTH(created_at)
       ORDER BY month
     `, [year]);
@@ -1306,9 +1305,7 @@ router.get('/enhanced/financial/monthly', async (req, res) => {
             const existingData = financialData.find(d => d.month === month);
             return existingData || {
                 month,
-                registration_fees: 0,
                 annual_fees: 0,
-                monthly_fees: 0,
                 total_payments: 0
             };
         });
@@ -1319,9 +1316,7 @@ router.get('/enhanced/financial/monthly', async (req, res) => {
                 year: parseInt(year),
                 monthly_data: monthlyData,
                 summary: {
-                    total_registration: monthlyData.reduce((sum, m) => sum + parseFloat(m.registration_fees || 0), 0),
                     total_annual: monthlyData.reduce((sum, m) => sum + parseFloat(m.annual_fees || 0), 0),
-                    total_monthly: monthlyData.reduce((sum, m) => sum + parseFloat(m.monthly_fees || 0), 0),
                     total_payments: monthlyData.reduce((sum, m) => sum + (m.total_payments || 0), 0)
                 }
             }
@@ -1439,10 +1434,21 @@ router.delete('/enhanced/third-party/:id', verifyAdminLSA, async (req, res) => {
 router.get('/enhanced/payments/bank-transfers', async (req, res) => {
     try {
         const [payments] = await db.execute(`
-      SELECT p.*, s.name as spa_name, s.reference_number, s.owner_fname, s.owner_lname
+      SELECT p.*, s.name as spa_name, s.reference_number, s.owner_fname, s.owner_lname,
+      CASE 
+        WHEN p.bank_slip_path IS NOT NULL THEN 
+            CASE 
+                WHEN p.bank_slip_path LIKE '/uploads/%' THEN CONCAT('http://localhost:3001', p.bank_slip_path)
+                WHEN p.bank_slip_path LIKE 'uploads/%' THEN CONCAT('http://localhost:3001/', p.bank_slip_path)
+                ELSE CONCAT('http://localhost:3001/uploads/', p.bank_slip_path)
+            END
+        ELSE NULL
+      END as bank_slip_path
       FROM payments p
       JOIN spas s ON p.spa_id = s.id
-      WHERE p.payment_method = 'bank_transfer' AND p.payment_status = 'pending_approval'
+      WHERE p.payment_method = 'bank_transfer' 
+        AND p.payment_status = 'pending_approval' 
+        AND p.payment_type = 'annual'
       ORDER BY p.created_at DESC
     `);
 
@@ -1461,7 +1467,7 @@ router.get('/enhanced/payments/history', async (req, res) => {
         const limitValue = parseInt(limit) || 50;
         const offsetValue = parseInt(offset) || 0;
 
-        // Use the same approach as bank transfers - simple execute without parameters
+        // Filter only annual payments and fix bank slip path
         const [payments] = await db.execute(`
             SELECT 
                 p.*,
@@ -1471,6 +1477,15 @@ router.get('/enhanced/payments/history', async (req, res) => {
                 s.owner_lname,
                 s.email as owner_email,
                 CASE 
+                    WHEN p.bank_slip_path IS NOT NULL THEN 
+                        CASE 
+                            WHEN p.bank_slip_path LIKE '/uploads/%' THEN CONCAT('http://localhost:3001', p.bank_slip_path)
+                            WHEN p.bank_slip_path LIKE 'uploads/%' THEN CONCAT('http://localhost:3001/', p.bank_slip_path)
+                            ELSE CONCAT('http://localhost:3001/uploads/', p.bank_slip_path)
+                        END
+                    ELSE NULL
+                END as bank_slip_path,
+                CASE 
                     WHEN p.payment_method = 'bank_transfer' THEN 
                         CASE WHEN p.payment_status = 'completed' THEN 'Approved' 
                              WHEN p.payment_status = 'pending_approval' THEN 'Pending Approval'
@@ -1479,14 +1494,15 @@ router.get('/enhanced/payments/history', async (req, res) => {
                 END as approval_status
             FROM payments p
             JOIN spas s ON p.spa_id = s.id
+            WHERE p.payment_type = 'annual'
             ORDER BY p.created_at DESC 
             LIMIT ${limitValue} OFFSET ${offsetValue}
         `);
 
-        console.log('📊 Payment history query executed successfully');
+        console.log('📊 Payment history query executed successfully (filtered for annual payments only)');
 
-        // Get total count
-        const countQuery = `SELECT COUNT(*) as total FROM payments p JOIN spas s ON p.spa_id = s.id`;
+        // Get total count for annual payments only
+        const countQuery = `SELECT COUNT(*) as total FROM payments p JOIN spas s ON p.spa_id = s.id WHERE p.payment_type = 'annual'`;
         const [countResult] = await db.execute(countQuery);
 
         res.json({

@@ -86,12 +86,43 @@ const Login = () => {
         }, 1500);
 
       } else {
-        Swal.fire({
-          title: 'Login Failed',
-          text: data.message || 'Invalid username or password',
-          icon: 'error',
-          confirmButtonColor: '#0A1428'
-        });
+        // Handle specific error cases for spa status
+        if (data.access_denied && data.spa_status) {
+          let title = 'Access Denied';
+          let icon = 'warning';
+          let message = data.message;
+
+          // Customize alert based on spa status
+          switch (data.spa_status) {
+            case 'pending':
+              title = 'Application Pending';
+              icon = 'info';
+              break;
+            case 'blacklisted':
+              title = 'Account Suspended';
+              icon = 'error';
+              break;
+            default:
+              title = 'Access Restricted';
+              icon = 'warning';
+          }
+
+          Swal.fire({
+            title: title,
+            text: message,
+            icon: icon,
+            confirmButtonColor: '#0A1428',
+            confirmButtonText: 'Understood'
+          });
+        } else {
+          // Regular login failure
+          Swal.fire({
+            title: 'Login Failed',
+            text: data.message || 'Invalid username or password',
+            icon: 'error',
+            confirmButtonColor: '#0A1428'
+          });
+        }
       }
     } catch (error) {
       console.error('Login error:', error);

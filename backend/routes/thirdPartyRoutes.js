@@ -566,7 +566,7 @@ router.get('/therapist/:id', authenticateThirdParty, async (req, res) => {
                 // Enhance each history entry with spa details
                 for (const entry of historyData) {
                     const [spa] = await db.execute(`
-                        SELECT name, spa_br_number as business_reg_number, owner_fname, owner_lname
+                        SELECT name, reference_number as business_reg_number, owner_fname, owner_lname
                         FROM spas WHERE id = ?
                     `, [entry.spa_id]);
 
@@ -633,7 +633,7 @@ router.get('/therapist/:id', authenticateThirdParty, async (req, res) => {
                 reviewed_at: therapistData.reviewed_at,
                 reviewed_by: therapistData.reviewed_by,
                 rejection_reason: therapistData.rejection_reason,
-                resigned_at: therapistData.resigned_at,
+                resigned_at: therapistData.resign_date,
                 terminated_at: therapistData.terminated_at,
                 termination_reason: therapistData.termination_reason
             }

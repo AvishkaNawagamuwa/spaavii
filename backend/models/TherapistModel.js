@@ -241,9 +241,15 @@ class TherapistModel {
         try {
             await connection.beginTransaction();
 
+            // Get current therapist details including working history
+            const therapist = await this.getTherapistById(therapistId);
+            if (!therapist) {
+                throw new Error('Therapist not found');
+            }
+
             const updateQuery = `
                 UPDATE therapists 
-                SET status = 'resigned', resigned_at = NOW()
+                SET status = 'resigned', resign_date = CURDATE()
                 WHERE id = ? AND spa_id = ? AND status = 'approved'
             `;
             const [result] = await connection.execute(updateQuery, [therapistId, spaId]);
@@ -252,8 +258,42 @@ class TherapistModel {
                 throw new Error('Therapist not found or cannot be resigned');
             }
 
-            // Get therapist details
-            const therapist = await this.getTherapistById(therapistId);
+            // Update working history to mark current employment as ended
+            let workingHistory = [];
+            if (therapist.working_history) {
+                // Check if working_history is already an object or needs parsing
+                if (Array.isArray(therapist.working_history)) {
+                    workingHistory = therapist.working_history;
+                } else if (typeof therapist.working_history === 'string') {
+                    try {
+                        workingHistory = JSON.parse(therapist.working_history);
+                    } catch (e) {
+                        workingHistory = [];
+                    }
+                } else {
+                    workingHistory = [];
+                }
+            }
+
+            // Update the current spa entry in working history
+            const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+            const updatedHistory = workingHistory.map(entry => {
+                if (entry.spa_id === spaId && !entry.end_date) {
+                    return {
+                        ...entry,
+                        end_date: currentDate,
+                        status: 'resigned'
+                    };
+                }
+                return entry;
+            });
+
+            // Update working history in database
+            await connection.execute(
+                'UPDATE therapists SET working_history = ? WHERE id = ?',
+                [JSON.stringify(updatedHistory), therapistId]
+            );
+
             const therapistName = therapist.name || `${therapist.first_name || ''} ${therapist.last_name || ''}`.trim();
 
             // Log activity
@@ -275,9 +315,15 @@ class TherapistModel {
         try {
             await connection.beginTransaction();
 
+            // Get current therapist details including working history
+            const therapist = await this.getTherapistById(therapistId);
+            if (!therapist) {
+                throw new Error('Therapist not found');
+            }
+
             const updateQuery = `
                 UPDATE therapists 
-                SET status = 'terminated', terminated_at = NOW(), termination_reason = ?
+                SET status = 'terminated', terminated_at = CURDATE(), termination_reason = ?
                 WHERE id = ? AND spa_id = ? AND status = 'approved'
             `;
             const [result] = await connection.execute(updateQuery, [reason, therapistId, spaId]);
@@ -286,8 +332,43 @@ class TherapistModel {
                 throw new Error('Therapist not found or cannot be terminated');
             }
 
-            // Get therapist details
-            const therapist = await this.getTherapistById(therapistId);
+            // Update working history to mark current employment as ended
+            let workingHistory = [];
+            if (therapist.working_history) {
+                // Check if working_history is already an object or needs parsing
+                if (Array.isArray(therapist.working_history)) {
+                    workingHistory = therapist.working_history;
+                } else if (typeof therapist.working_history === 'string') {
+                    try {
+                        workingHistory = JSON.parse(therapist.working_history);
+                    } catch (e) {
+                        workingHistory = [];
+                    }
+                } else {
+                    workingHistory = [];
+                }
+            }
+
+            // Update the current spa entry in working history
+            const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+            const updatedHistory = workingHistory.map(entry => {
+                if (entry.spa_id === spaId && !entry.end_date) {
+                    return {
+                        ...entry,
+                        end_date: currentDate,
+                        status: 'terminated',
+                        reason_for_leaving: reason || 'Terminated'
+                    };
+                }
+                return entry;
+            });
+
+            // Update working history in database
+            await connection.execute(
+                'UPDATE therapists SET working_history = ? WHERE id = ?',
+                [JSON.stringify(updatedHistory), therapistId]
+            );
+
             const therapistName = therapist.name || `${therapist.first_name || ''} ${therapist.last_name || ''}`.trim();
 
             // Log activity

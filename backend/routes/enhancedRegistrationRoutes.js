@@ -6,7 +6,7 @@ const fs = require('fs');
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+const { sendRegistrationEmail, testEmailConnection } = require('../utils/emailService');
 
 // Helper functions for credential generation
 function generateRandomPassword(length = 12) {
@@ -104,15 +104,6 @@ const upload = multer({
     limits: {
         fileSize: 10 * 1024 * 1024, // 10MB limit
         files: 20 // Maximum 20 files
-    }
-});
-
-// Email configuration
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER || 'lsa@example.com',
-        pass: process.env.EMAIL_PASS || 'password'
     }
 });
 
@@ -354,7 +345,7 @@ router.post('/submit', upload.fields([
 
         // Transaction removed for testing
 
-        // Log credentials to console for easy reference (no email needed)
+        // Log credentials to console for easy reference
         console.log('\n' + '='.repeat(60));
         console.log('🔐 SPA LOGIN CREDENTIALS GENERATED');
         console.log('='.repeat(60));
@@ -366,11 +357,29 @@ router.post('/submit', upload.fields([
         console.log(`🌐 Login URL: http://localhost:5173/login`);
         console.log('='.repeat(60) + '\n');
 
+        // Send email with credentials to spa owner
+        console.log('📧 Sending registration email to:', email);
+        const emailResult = await sendRegistrationEmail(
+            email,
+            `${firstName} ${lastName}`,
+            spaName,
+            uniqueUsername,
+            uniquePassword,
+            referenceNumber
+        );
+
+        if (emailResult.success) {
+            console.log('✅ Registration email sent successfully');
+        } else {
+            console.error('❌ Failed to send registration email:', emailResult.error);
+            // Continue with registration even if email fails
+        }
+
         res.status(201).json({
             success: true,
             message: paymentMethod === 'card'
-                ? 'Registration completed successfully! Your login credentials are ready.'
-                : 'Registration submitted! Your login credentials are ready. Please complete the bank transfer.',
+                ? 'Registration completed successfully! Your login credentials have been sent to your email.'
+                : 'Registration submitted! Your login credentials have been sent to your email. Please complete the bank transfer.',
             data: {
                 referenceNumber,
                 spaId,
@@ -382,13 +391,14 @@ router.post('/submit', upload.fields([
                 credentials: {
                     username: uniqueUsername,
                     password: uniquePassword,
-                    note: 'Please save these credentials securely'
+                    note: 'Login credentials have been sent to your registered email address'
                 },
                 loginInfo: {
-                    message: 'Use these credentials to access your spa dashboard',
+                    message: 'Check your email for login credentials to access your spa dashboard',
                     loginUrl: 'http://localhost:5173/login',
                     note: 'You can change your password after logging in'
-                }
+                },
+                emailStatus: emailResult.success ? 'sent' : 'failed'
             }
         });
 

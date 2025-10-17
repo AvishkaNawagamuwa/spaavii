@@ -1926,24 +1926,9 @@ const AdminLSA = () => {
   // Financial Overview Content Component
   const renderFinancialOverviewContent = () => (
     <div>
-      {/* Financial Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-[#001F3F]">
-          <div className="flex items-center">
-            <div className="p-3 bg-[#FFD700]/20 rounded-lg">
-              <CreditCardIcon className="w-8 h-8 text-[#FFD700]" />
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-[#001F3F]">Total Registration Fee Paid</h3>
-              <p className="text-3xl font-bold text-[#FFD700]">
-                LKR {financialData.summary?.total_registration?.toLocaleString() || '0'}
-              </p>
-              <div className="text-xs text-gray-500 mt-1">Year {selectedYear}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-[#001F3F]">
+      {/* Financial Stats Cards - Only Annual Fee */}
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-[#001F3F] mx-auto max-w-md">
           <div className="flex items-center">
             <div className="p-3 bg-[#001F3F]/20 rounded-lg">
               <CreditCardIcon className="w-8 h-8 text-[#001F3F]" />
@@ -1985,31 +1970,28 @@ const AdminLSA = () => {
             <thead style={{ backgroundColor: '#001F3F', color: 'white' }}>
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Month</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Registration Fees (LKR)</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Annual Fees (LKR)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Total (LKR)</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Payment Count</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {financialData.monthly_data?.length > 0 ? (
                 financialData.monthly_data.map((row, index) => {
                   const monthName = new Date(selectedYear, row.month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                  const registration = parseFloat(row.registration_fees) || 0;
                   const annual = parseFloat(row.annual_fees) || 0;
-                  const total = registration + annual;
+                  const paymentCount = row.total_payments || 0;
 
                   return (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{monthName}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{registration.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{annual.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-sm font-medium text-[#FFD700]">{total.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-[#FFD700]">{annual.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{paymentCount}</td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
                     {loading ? 'Loading financial data...' : 'No financial data available for this year'}
                   </td>
                 </tr>

@@ -3,6 +3,7 @@ const router = express.Router();
 const NotificationModel = require('../models/NotificationModel');
 const ActivityLogModel = require('../models/ActivityLogModel');
 const db = require('../config/database');
+const { sendStatusUpdateEmail } = require('../utils/emailService');
 
 // Get all notifications for AdminLSA
 router.get('/notifications', async (req, res) => {
@@ -229,6 +230,31 @@ router.patch('/spas/:id/approve', async (req, res) => {
             related_entity_id: spaId
         });
 
+        // Get spa owner credentials for email
+        const [adminUser] = await db.execute(`
+            SELECT username FROM admin_users WHERE spa_id = ? AND role = 'admin_spa'
+        `, [spaId]);
+
+        // Send approval email
+        if (spa[0] && spa[0].email && adminUser[0]) {
+            console.log('📧 Sending approval email to:', spa[0].email);
+            const emailResult = await sendStatusUpdateEmail(
+                spa[0].email,
+                `${spa[0].owner_fname} ${spa[0].owner_lname}`,
+                spa[0].name,
+                'approved',
+                adminUser[0].username,
+                spa[0].owner_nic || 'Please contact support for password reset', // Using NIC as fallback password
+                notes
+            );
+
+            if (emailResult.success) {
+                console.log('✅ Approval email sent successfully');
+            } else {
+                console.error('❌ Failed to send approval email:', emailResult.error);
+            }
+        }
+
         res.json({
             success: true,
             message: 'Spa approved successfully'
@@ -291,6 +317,31 @@ router.patch('/spas/:id/reject', async (req, res) => {
             related_entity_type: 'spa',
             related_entity_id: spaId
         });
+
+        // Get spa owner credentials for email  
+        const [adminUser] = await db.execute(`
+            SELECT username FROM admin_users WHERE spa_id = ? AND role = 'admin_spa'
+        `, [spaId]);
+
+        // Send rejection email
+        if (spa[0] && spa[0].email && adminUser[0]) {
+            console.log('📧 Sending rejection email to:', spa[0].email);
+            const emailResult = await sendStatusUpdateEmail(
+                spa[0].email,
+                `${spa[0].owner_fname} ${spa[0].owner_lname}`,
+                spa[0].name,
+                'rejected',
+                adminUser[0].username,
+                spa[0].owner_nic || 'Please contact support for password reset', // Using NIC as fallback password
+                reason
+            );
+
+            if (emailResult.success) {
+                console.log('✅ Rejection email sent successfully');
+            } else {
+                console.error('❌ Failed to send rejection email:', emailResult.error);
+            }
+        }
 
         res.json({
             success: true,

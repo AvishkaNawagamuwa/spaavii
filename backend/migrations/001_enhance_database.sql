@@ -46,10 +46,7 @@ CREATE TABLE IF NOT EXISTS payments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (spa_id) REFERENCES spas(id) ON DELETE CASCADE,
-    INDEX idx_payment_spa (spa_id),
-    INDEX idx_payment_status (status),
-    INDEX idx_payment_reference (reference_number)
+    FOREIGN KEY (spa_id) REFERENCES spas(id) ON DELETE CASCADE
 );
 
 -- 3. Create admin_users table for AdminLSA, AdminSPA, and Third-party logins

@@ -27,6 +27,7 @@ CREATE TABLE spas (
     address_line2 VARCHAR(255),
     province VARCHAR(100),
     postal_code VARCHAR(10),
+    police_division VARCHAR(100),
     
     -- Document Attachments (File Paths)
     nic_front_path VARCHAR(500),                -- NIC Front Photo

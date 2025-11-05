@@ -1886,4 +1886,173 @@ router.delete('/third-party/account/:id', asyncHandler(async (req, res) => {
     }
 }));
 
+// ==================== ACCOUNT SETTINGS ROUTES ====================
+
+/**
+ * @route   PUT /api/lsa/account/change-credentials
+ * @desc    Change admin username and/or password
+ * @access  Private (Admin LSA)
+ */
+router.put('/account/change-credentials', asyncHandler(async (req, res) => {
+    try {
+        const { admin_id, current_password, new_username, new_email, new_password } = req.body;
+
+        // Validate required fields
+        if (!admin_id || !current_password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Admin ID and current password are required'
+            });
+        }
+
+        // At least one of new_username, new_email or new_password must be provided
+        if (!new_username && !new_email && !new_password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide new username, email or password'
+            });
+        }
+
+        // Validate email format if new email is provided
+        if (new_email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(new_email)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Please provide a valid email address'
+                });
+            }
+        }
+
+        // Validate password requirements if new password is provided
+        if (new_password) {
+            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$%!*])[A-Za-z\d@#$%!*]{8,}$/;
+            if (!passwordRegex.test(new_password)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character (@#$%!*)'
+                });
+            }
+        }
+
+        // Get current admin user (support all admin roles)
+        const [adminUser] = await db.execute(
+            'SELECT id, username, email, password_hash, role FROM admin_users WHERE id = ?',
+            [admin_id]
+        );
+
+        if (adminUser.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Admin user not found'
+            });
+        }
+
+        const user = adminUser[0];
+
+        // Verify current password
+        let isPasswordValid = false;
+        if (user.password_hash.startsWith('$2b$')) {
+            // Bcrypt hash
+            isPasswordValid = await bcrypt.compare(current_password, user.password_hash);
+        } else {
+            // Plain text (for development)
+            isPasswordValid = (current_password === user.password_hash);
+        }
+
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                message: 'Current password is incorrect'
+            });
+        }
+
+        // Check if new username already exists (if username is being changed)
+        if (new_username && new_username !== user.username) {
+            const [existingUser] = await db.execute(
+                'SELECT id FROM admin_users WHERE username = ? AND id != ?',
+                [new_username, admin_id]
+            );
+
+            if (existingUser.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Username already exists'
+                });
+            }
+        }
+
+        // Check if new email already exists (if email is being changed)
+        if (new_email && new_email !== user.email) {
+            const [existingEmail] = await db.execute(
+                'SELECT id FROM admin_users WHERE email = ? AND id != ?',
+                [new_email, admin_id]
+            );
+
+            if (existingEmail.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Email already exists'
+                });
+            }
+        }
+
+        // Prepare update query
+        let updateQuery = 'UPDATE admin_users SET ';
+        let updateParams = [];
+        let updateFields = [];
+
+        // Add username update if provided
+        if (new_username) {
+            updateFields.push('username = ?');
+            updateParams.push(new_username);
+        }
+
+        // Add email update if provided
+        if (new_email) {
+            updateFields.push('email = ?');
+            updateParams.push(new_email);
+        }
+
+        // Add password update if provided
+        if (new_password) {
+            const hashedPassword = await bcrypt.hash(new_password, 10);
+            updateFields.push('password_hash = ?');
+            updateParams.push(hashedPassword);
+        }
+
+        // Add timestamp
+        updateFields.push('updated_at = CURRENT_TIMESTAMP');
+
+        // Complete the query
+        updateQuery += updateFields.join(', ') + ' WHERE id = ?';
+        updateParams.push(admin_id);
+
+        // Execute update
+        await db.execute(updateQuery, updateParams);
+
+        res.json({
+            success: true,
+            message: 'Credentials updated successfully',
+            data: {
+                username: new_username || user.username,
+                email: new_email || user.email,
+                updated_fields: {
+                    username: !!new_username,
+                    email: !!new_email,
+                    password: !!new_password
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Change credentials error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update credentials',
+            error: error.message
+        });
+    }
+}));
+
 module.exports = router;

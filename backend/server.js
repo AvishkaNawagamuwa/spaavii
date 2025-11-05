@@ -30,6 +30,9 @@ const authRoutes = require('./routes/authRoutes');
 // Import blog routes
 const blogRoutes = require('./routes/blogRoutes');
 
+// Import account management routes
+const accountManagementRoutes = require('./routes/accountManagementRoutes');
+
 // Import services
 const PaymentStatusChecker = require('./services/paymentStatusChecker');
 
@@ -81,6 +84,7 @@ app.use('/api', blogRoutes); // Blog routes
 app.use('/api', uploadRoutes);
 app.use('/api/spa', spaRoutes);
 app.use('/api/lsa', adminLSARoutes);
+app.use('/api/lsa/account-management', accountManagementRoutes); // Account management routes
 app.use('/api/lsa', notificationRoutes); // Add notification routes (LSA specific)
 app.use('/api/lsa', notificationHistoryRoutes); // Add notification history routes (LSA specific)
 app.use('/api/notifications', notificationRoutes); // Add notification routes (general)

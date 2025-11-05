@@ -72,6 +72,9 @@ const Login = () => {
         setTimeout(() => {
           switch (data.user.role) {
             case 'admin_lsa':
+            case 'super_admin':
+            case 'admin':
+            case 'financial_officer':
               navigate('/adminLSA');
               break;
             case 'admin_spa':
@@ -207,13 +210,13 @@ const Login = () => {
           {/* Login Form */}
           <div className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Username Field */}
+              {/* Username or Email Field */}
               <div>
                 <label
                   htmlFor="username"
                   className="block text-sm font-semibold text-gray-700 mb-2"
                 >
-                  Username
+                  Username or Email
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -226,7 +229,7 @@ const Login = () => {
                     value={formData.username}
                     onChange={handleInputChange}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent transition-all duration-300 text-gray-700 bg-gray-50 focus:bg-white"
-                    placeholder="Enter your username"
+                    placeholder="Enter your username or email"
                     disabled={isLoading}
                   />
                 </div>
@@ -234,12 +237,21 @@ const Login = () => {
 
               {/* Password Field */}
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-semibold text-gray-700"
+                  >
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/forgot-password')}
+                    className="text-xs text-[#0A1428] hover:text-[#FFD700] font-medium transition-colors duration-300"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <FiLock className="h-5 w-5 text-gray-400" />

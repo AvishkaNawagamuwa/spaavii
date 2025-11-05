@@ -1,5 +1,19 @@
 import React, { useState } from "react";
 import Swal from 'sweetalert2';
+import {
+  validateNIC,
+  validateEmail,
+  validatePhone,
+  validateName,
+  validateSpaName,
+  validateAddress,
+  validatePostalCode,
+  validateBRNumber,
+  validateFile,
+  validateAllFields,
+  validateEmailAsync,
+  validateNICAsync
+} from '../utils/validation';
 
 // ProgressIndicator Component - Improved Design
 const ProgressIndicator = ({ currentStep }) => {
@@ -257,9 +271,22 @@ const UserDetailsStep = ({
   userDetails,
   onDetailChange,
   onFileUpload,
+  onFieldBlur,
+  validationErrors,
   onBack,
   onSubmit,
 }) => {
+
+  // Helper component to display error message
+  const ErrorMessage = ({ error }) => {
+    if (!error) return null;
+    return (
+      <p className="mt-1 text-sm text-red-600 flex items-center">
+        <i className="fas fa-exclamation-circle mr-1"></i>
+        {error}
+      </p>
+    );
+  };
   return (
     <div className="py-0">
       <form onSubmit={onSubmit} className="space-y-8">
@@ -272,92 +299,152 @@ const UserDetailsStep = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-gray-700 mb-3 font-medium">
-                First Name
+                First Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="firstName"
                 value={userDetails.firstName}
                 onChange={onDetailChange}
-                className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                onBlur={() => onFieldBlur && onFieldBlur('firstName')}
+                className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.firstName
+                  ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                  }`}
                 required
               />
+              <ErrorMessage error={validationErrors?.firstName} />
             </div>
             <div>
               <label className="block text-gray-700 mb-3 font-medium">
-                Last Name
+                Last Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="lastName"
                 value={userDetails.lastName}
                 onChange={onDetailChange}
-                className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                onBlur={() => onFieldBlur && onFieldBlur('lastName')}
+                className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.lastName
+                  ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                  }`}
                 required
               />
+              <ErrorMessage error={validationErrors?.lastName} />
             </div>
             <div>
               <label className="block text-gray-700 mb-3 font-medium">
-                Email Address
+                Email Address <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
                 name="email"
                 value={userDetails.email}
                 onChange={onDetailChange}
-                className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                onBlur={() => onFieldBlur && onFieldBlur('email')}
+                className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.email
+                  ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                  }`}
                 required
               />
+              <ErrorMessage error={validationErrors?.email} />
             </div>
             <div>
               <label className="block text-gray-700 mb-3 font-medium">
-                NIC No.
+                NIC No. <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="nicNo"
                 value={userDetails.nicNo}
                 onChange={onDetailChange}
-                className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                onBlur={() => onFieldBlur && onFieldBlur('nicNo')}
+                placeholder="902541234V or 200254123456"
+                className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.nicNo
+                  ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                  }`}
                 required
               />
+              <ErrorMessage error={validationErrors?.nicNo} />
+              <p className="mt-1 text-xs text-gray-500">
+                <i className="fas fa-info-circle mr-1"></i>
+                Old format: 9 digits + V/X | New format: 12 digits
+              </p>
             </div>
             <div>
               <label className="block text-gray-700 mb-3 font-medium">
-                Telephone
+                Telephone <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
                 name="telephone"
                 value={userDetails.telephone}
                 onChange={onDetailChange}
-                className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                onBlur={() => onFieldBlur && onFieldBlur('telephone')}
+                placeholder="0112345678"
+                className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.telephone
+                  ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                  }`}
                 required
               />
+              <ErrorMessage error={validationErrors?.telephone} />
+              <p className="mt-1 text-xs text-gray-500">
+                <i className="fas fa-info-circle mr-1"></i>
+                10 digits starting with 0
+              </p>
             </div>
             <div>
               <label className="block text-gray-700 mb-3 font-medium">
-                Cell Phone
+                Cell Phone <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
                 name="cellphone"
                 value={userDetails.cellphone}
                 onChange={onDetailChange}
-                className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                onBlur={() => onFieldBlur && onFieldBlur('cellphone')}
+                placeholder="0771234567"
+                className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.cellphone
+                  ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                  }`}
                 required
               />
+              <ErrorMessage error={validationErrors?.cellphone} />
+              <p className="mt-1 text-xs text-gray-500">
+                <i className="fas fa-info-circle mr-1"></i>
+                10 digits starting with 07
+              </p>
             </div>
             <div>
               <label className="block text-gray-700 mb-3 font-medium">
-                NIC Front Photo
+                NIC Front Photo <span className="text-red-500">*</span>
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-5 text-center transition-all duration-300 hover:border-gold hover:bg-white">
-                <i className="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-3"></i>
-                <p className="text-gray-600 mb-1">
-                  Click to upload or drag and drop
-                </p>
-                <p className="text-xs text-gray-400">JPG, PNG (Max 5MB)</p>
+              <div className={`border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300 ${validationErrors?.nicFront
+                ? 'border-red-500 bg-red-50'
+                : 'border-gray-300 hover:border-gold hover:bg-white'
+                }`}>
+                {userDetails.nicFront ? (
+                  <div>
+                    <i className="fas fa-check-circle text-green-500 text-3xl mb-3"></i>
+                    <p className="text-green-600 font-medium">{userDetails.nicFront.name}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(userDetails.nicFront.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <i className="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-3"></i>
+                    <p className="text-gray-600 mb-1">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-gray-400">JPG, PNG (Max 5MB)</p>
+                  </>
+                )}
                 <input
                   type="file"
                   accept="image/*"
@@ -370,20 +457,36 @@ const UserDetailsStep = ({
                   htmlFor="nicFront"
                   className="mt-3 bg-gray-100 text-primary-dark px-5 py-2 rounded-lg inline-block cursor-pointer transition-all duration-300 hover:bg-gold-light"
                 >
-                  Select File
+                  {userDetails.nicFront ? 'Change File' : 'Select File'}
                 </label>
               </div>
+              <ErrorMessage error={validationErrors?.nicFront} />
             </div>
             <div>
               <label className="block text-gray-700 mb-3 font-medium">
-                NIC Back Photo
+                NIC Back Photo <span className="text-red-500">*</span>
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-5 text-center transition-all duration-300 hover:border-gold hover:bg-white">
-                <i className="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-3"></i>
-                <p className="text-gray-600 mb-1">
-                  Click to upload or drag and drop
-                </p>
-                <p className="text-xs text-gray-400">JPG, PNG (Max 5MB)</p>
+              <div className={`border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300 ${validationErrors?.nicBack
+                ? 'border-red-500 bg-red-50'
+                : 'border-gray-300 hover:border-gold hover:bg-white'
+                }`}>
+                {userDetails.nicBack ? (
+                  <div>
+                    <i className="fas fa-check-circle text-green-500 text-3xl mb-3"></i>
+                    <p className="text-green-600 font-medium">{userDetails.nicBack.name}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(userDetails.nicBack.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <i className="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-3"></i>
+                    <p className="text-gray-600 mb-1">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-gray-400">JPG, PNG (Max 5MB)</p>
+                  </>
+                )}
                 <input
                   type="file"
                   accept="image/*"
@@ -396,9 +499,10 @@ const UserDetailsStep = ({
                   htmlFor="nicBack"
                   className="mt-3 bg-gray-100 text-primary-dark px-5 py-2 rounded-lg inline-block cursor-pointer transition-all duration-300 hover:bg-gold-light"
                 >
-                  Select File
+                  {userDetails.nicBack ? 'Change File' : 'Select File'}
                 </label>
               </div>
+              <ErrorMessage error={validationErrors?.nicBack} />
             </div>
           </div>
         </div>
@@ -412,16 +516,21 @@ const UserDetailsStep = ({
           <div className="space-y-6">
             <div>
               <label className="block text-gray-700 mb-3 font-medium">
-                Spa Name
+                Spa Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="spaName"
                 value={userDetails.spaName}
                 onChange={onDetailChange}
-                className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                onBlur={() => onFieldBlur && onFieldBlur('spaName')}
+                className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.spaName
+                  ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                  }`}
                 required
               />
+              <ErrorMessage error={validationErrors?.spaName} />
             </div>
 
             {/* Updated Address Section */}
@@ -432,16 +541,21 @@ const UserDetailsStep = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-gray-600 mb-2 text-sm">
-                    Address Line 1
+                    Address Line 1 <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="spaAddressLine1"
                     value={userDetails.spaAddressLine1}
                     onChange={onDetailChange}
-                    className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                    onBlur={() => onFieldBlur && onFieldBlur('spaAddressLine1')}
+                    className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.spaAddressLine1
+                      ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                      : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                      }`}
                     required
                   />
+                  <ErrorMessage error={validationErrors?.spaAddressLine1} />
                 </div>
 
                 <div>
@@ -453,38 +567,91 @@ const UserDetailsStep = ({
                     name="spaAddressLine2"
                     value={userDetails.spaAddressLine2}
                     onChange={onDetailChange}
-                    className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                    onBlur={() => onFieldBlur && onFieldBlur('spaAddressLine2')}
+                    className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.spaAddressLine2
+                      ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                      : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                      }`}
                   />
+                  <ErrorMessage error={validationErrors?.spaAddressLine2} />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-gray-600 mb-2 text-sm">
-                    Province/State
+                    Province/State <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="spaProvince"
                     value={userDetails.spaProvince}
                     onChange={onDetailChange}
-                    className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                    onBlur={() => onFieldBlur && onFieldBlur('spaProvince')}
+                    className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.spaProvince
+                      ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                      : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                      }`}
                     required
-                  />
+                  >
+                    <option value="">Select Province</option>
+                    <option value="Western">Western</option>
+                    <option value="Central">Central</option>
+                    <option value="Southern">Southern</option>
+                    <option value="Eastern">Eastern</option>
+                    <option value="Northern">Northern</option>
+                    <option value="North Western">North Western</option>
+                    <option value="North Central">North Central</option>
+                    <option value="Uva">Uva</option>
+                    <option value="Sabaragamuwa">Sabaragamuwa</option>
+                  </select>
+                  <ErrorMessage error={validationErrors?.spaProvince} />
                 </div>
 
                 <div>
                   <label className="block text-gray-600 mb-2 text-sm">
-                    Postal Code
+                    Postal Code <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="spaPostalCode"
                     value={userDetails.spaPostalCode}
                     onChange={onDetailChange}
-                    className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                    onBlur={() => onFieldBlur && onFieldBlur('spaPostalCode')}
+                    placeholder="10100"
+                    maxLength="5"
+                    className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.spaPostalCode
+                      ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                      : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                      }`}
                     required
                   />
+                  <ErrorMessage error={validationErrors?.spaPostalCode} />
+                  <p className="mt-1 text-xs text-gray-500">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    5 digit postal code
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-600 mb-2 text-sm">
+                    Police Division <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="policeDivision"
+                    value={userDetails.policeDivision}
+                    onChange={onDetailChange}
+                    onBlur={() => onFieldBlur && onFieldBlur('policeDivision')}
+                    placeholder="e.g., Colombo, Kandy, Galle"
+                    className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.policeDivision
+                      ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                      : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                      }`}
+                    required
+                  />
+                  <ErrorMessage error={validationErrors?.policeDivision} />
                 </div>
               </div>
             </div>
@@ -492,43 +659,70 @@ const UserDetailsStep = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-gray-700 mb-3 font-medium">
-                  Spa Telephone Number
+                  Spa Telephone Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel"
                   name="spaTelephone"
                   value={userDetails.spaTelephone}
                   onChange={onDetailChange}
-                  className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                  onBlur={() => onFieldBlur && onFieldBlur('spaTelephone')}
+                  placeholder="0112345678"
+                  className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.spaTelephone
+                    ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                    : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                    }`}
                   required
                 />
+                <ErrorMessage error={validationErrors?.spaTelephone} />
               </div>
               <div>
                 <label className="block text-gray-700 mb-3 font-medium">
-                  Spa BR Number
+                  Spa BR Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="spaBRNumber"
                   value={userDetails.spaBRNumber}
                   onChange={onDetailChange}
-                  className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-light focus:border-gold transition-all duration-300"
+                  onBlur={() => onFieldBlur && onFieldBlur('spaBRNumber')}
+                  placeholder="PV12345"
+                  className={`w-full px-5 py-3 border rounded-xl focus:ring-2 transition-all duration-300 ${validationErrors?.spaBRNumber
+                    ? 'border-red-500 focus:ring-red-300 focus:border-red-500'
+                    : 'border-gray-300 focus:ring-gold-light focus:border-gold'
+                    }`}
                   required
                 />
+                <ErrorMessage error={validationErrors?.spaBRNumber} />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-gray-700 mb-3 font-medium">
-                  BR Attachment
+                  BR Attachment <span className="text-red-500">*</span>
                 </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-5 text-center transition-all duration-300 hover:border-gold hover:bg-white">
-                  <i className="fas fa-file-pdf text-gray-400 text-3xl mb-3"></i>
-                  <p className="text-gray-600 mb-1">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-400">PDF, DOC (Max 10MB)</p>
+                <div className={`border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300 ${validationErrors?.brAttachment
+                  ? 'border-red-500 bg-red-50'
+                  : 'border-gray-300 hover:border-gold hover:bg-white'
+                  }`}>
+                  {userDetails.brAttachment ? (
+                    <div>
+                      <i className="fas fa-check-circle text-green-500 text-3xl mb-3"></i>
+                      <p className="text-green-600 font-medium">{userDetails.brAttachment.name}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {(userDetails.brAttachment.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <i className="fas fa-file-pdf text-gray-400 text-3xl mb-3"></i>
+                      <p className="text-gray-600 mb-1">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-400">PDF, DOC (Max 10MB)</p>
+                    </>
+                  )}
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx"
@@ -541,23 +735,39 @@ const UserDetailsStep = ({
                     htmlFor="brAttachment"
                     className="mt-3 bg-gray-100 text-primary-dark px-5 py-2 rounded-lg inline-block cursor-pointer transition-all duration-300 hover:bg-gold-light"
                   >
-                    Select File
+                    {userDetails.brAttachment ? 'Change File' : 'Select File'}
                   </label>
                 </div>
+                <ErrorMessage error={validationErrors?.brAttachment} />
               </div>
 
               <div>
                 <label className="block text-gray-700 mb-3 font-medium">
                   Any Other Document (Optional)
                 </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-5 text-center transition-all duration-300 hover:border-gold hover:bg-white">
-                  <i className="fas fa-file-upload text-gray-400 text-3xl mb-3"></i>
-                  <p className="text-gray-600 mb-1">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    PDF, DOC, JPG (Max 10MB)
-                  </p>
+                <div className={`border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300 ${validationErrors?.otherDocument
+                  ? 'border-red-500 bg-red-50'
+                  : 'border-gray-300 hover:border-gold hover:bg-white'
+                  }`}>
+                  {userDetails.otherDocument ? (
+                    <div>
+                      <i className="fas fa-check-circle text-green-500 text-3xl mb-3"></i>
+                      <p className="text-green-600 font-medium">{userDetails.otherDocument.name}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {(userDetails.otherDocument.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <i className="fas fa-file-upload text-gray-400 text-3xl mb-3"></i>
+                      <p className="text-gray-600 mb-1">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        PDF, DOC, JPG (Max 10MB)
+                      </p>
+                    </>
+                  )}
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx,image/*"
@@ -569,9 +779,10 @@ const UserDetailsStep = ({
                     htmlFor="otherDocument"
                     className="mt-3 bg-gray-100 text-primary-dark px-5 py-2 rounded-lg inline-block cursor-pointer transition-all duration-300 hover:bg-gold-light"
                   >
-                    Select File
+                    {userDetails.otherDocument ? 'Change File' : 'Select File'}
                   </label>
                 </div>
+                <ErrorMessage error={validationErrors?.otherDocument} />
               </div>
             </div>
 
@@ -588,12 +799,27 @@ const UserDetailsStep = ({
                     Form 1 Certificate Attachment
                     <span className="text-red-500 ml-1 font-semibold">*</span>
                   </label>
-                  <div className="border-2 border-dashed border-gold-light rounded-xl p-5 text-center transition-all duration-300 hover:border-gold hover:bg-white">
-                    <i className="fas fa-certificate text-gold text-3xl mb-3"></i>
-                    <p className="text-gray-600 mb-1">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-xs text-gray-400">PDF, DOC (Max 10MB)</p>
+                  <div className={`border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300 ${validationErrors?.form1Certificate
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-gold-light hover:border-gold hover:bg-white'
+                    }`}>
+                    {userDetails.form1Certificate ? (
+                      <div>
+                        <i className="fas fa-check-circle text-green-500 text-3xl mb-3"></i>
+                        <p className="text-green-600 font-medium">{userDetails.form1Certificate.name}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {(userDetails.form1Certificate.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <i className="fas fa-certificate text-gold text-3xl mb-3"></i>
+                        <p className="text-gray-600 mb-1">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-400">PDF, DOC (Max 10MB)</p>
+                      </>
+                    )}
                     <input
                       type="file"
                       accept=".pdf,.doc,.docx"
@@ -606,9 +832,10 @@ const UserDetailsStep = ({
                       htmlFor="form1Certificate"
                       className="mt-3 bg-gold text-primary-dark px-5 py-2 rounded-lg inline-block cursor-pointer transition-all duration-300 hover:bg-gold-light font-semibold"
                     >
-                      Select File
+                      {userDetails.form1Certificate ? 'Change File' : 'Select File'}
                     </label>
                   </div>
+                  <ErrorMessage error={validationErrors?.form1Certificate} />
                   <p className="text-xs text-gray-500 mt-2 italic">
                     Required for private entities (Pvt Thanipudgala Wiyapara)
                   </p>
@@ -619,12 +846,27 @@ const UserDetailsStep = ({
                     Spa Photos Banner Attachment
                     <span className="text-red-500 ml-1 font-semibold">*</span>
                   </label>
-                  <div className="border-2 border-dashed border-gold-light rounded-xl p-5 text-center transition-all duration-300 hover:border-gold hover:bg-white">
-                    <i className="fas fa-images text-gold text-3xl mb-3"></i>
-                    <p className="text-gray-600 mb-1">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-xs text-gray-400">JPG, PNG (Max 10MB)</p>
+                  <div className={`border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300 ${validationErrors?.spaPhotosBanner
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-gold-light hover:border-gold hover:bg-white'
+                    }`}>
+                    {userDetails.spaPhotosBanner ? (
+                      <div>
+                        <i className="fas fa-check-circle text-green-500 text-3xl mb-3"></i>
+                        <p className="text-green-600 font-medium">{userDetails.spaPhotosBanner.name}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {(userDetails.spaPhotosBanner.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <i className="fas fa-images text-gold text-3xl mb-3"></i>
+                        <p className="text-gray-600 mb-1">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-400">JPG, PNG (Max 10MB)</p>
+                      </>
+                    )}
                     <input
                       type="file"
                       accept="image/*"
@@ -637,9 +879,10 @@ const UserDetailsStep = ({
                       htmlFor="spaPhotosBanner"
                       className="mt-3 bg-gold text-primary-dark px-5 py-2 rounded-lg inline-block cursor-pointer transition-all duration-300 hover:bg-gold-light font-semibold"
                     >
-                      Select File
+                      {userDetails.spaPhotosBanner ? 'Change File' : 'Select File'}
                     </label>
                   </div>
+                  <ErrorMessage error={validationErrors?.spaPhotosBanner} />
                   <p className="text-xs text-gray-500 mt-2 italic">
                     High-quality banner image for spa promotion
                   </p>
@@ -1292,6 +1535,7 @@ const Registration = () => {
     spaAddressLine2: "",
     spaProvince: "",
     spaPostalCode: "",
+    policeDivision: "",
     spaTelephone: "",
     spaBRNumber: "",
     brAttachment: null,
@@ -1301,6 +1545,12 @@ const Registration = () => {
     professionalCertifications: [],
     otherDocument: null,
   });
+
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState({});
+
+  // Touched fields state (to show errors only after user interaction)
+  const [touchedFields, setTouchedFields] = useState({});
 
   // Handle user type selection
   const handleUserTypeSelect = (type) => {
@@ -1321,28 +1571,284 @@ const Registration = () => {
     });
   };
 
-  // Handle user details form changes
+  // Validate individual field
+  const validateField = (fieldName, value) => {
+    let validation = { valid: true, message: '' };
+
+    switch (fieldName) {
+      case 'firstName':
+      case 'lastName':
+        validation = validateName(value, fieldName === 'firstName' ? 'First Name' : 'Last Name');
+        break;
+      case 'email':
+        validation = validateEmail(value);
+        break;
+      case 'nicNo':
+        validation = validateNIC(value);
+        break;
+      case 'telephone':
+        validation = validatePhone(value, 'Telephone');
+        break;
+      case 'cellphone':
+        validation = validatePhone(value, 'Cell Phone');
+        break;
+      case 'spaName':
+        validation = validateSpaName(value);
+        break;
+      case 'spaAddressLine1':
+        validation = validateAddress(value, 'Address Line 1');
+        break;
+      case 'spaAddressLine2':
+        if (value && value.trim() !== '') {
+          validation = validateAddress(value, 'Address Line 2');
+        }
+        break;
+      case 'spaProvince':
+        validation = validateName(value, 'Province');
+        break;
+      case 'spaPostalCode':
+        validation = validatePostalCode(value);
+        break;
+      case 'policeDivision':
+        validation = validateName(value, 'Police Division');
+        break;
+      case 'spaTelephone':
+        validation = validatePhone(value, 'Spa Telephone');
+        break;
+      case 'spaBRNumber':
+        validation = validateBRNumber(value);
+        break;
+      default:
+        break;
+    }
+
+    return validation;
+  };
+
+  // Handle user details form changes with validation
   const handleUserDetailsChange = (e) => {
     const { name, value } = e.target;
+
     setUserDetails({
       ...userDetails,
       [name]: value,
     });
+
+    // If field has been touched, validate it
+    if (touchedFields[name]) {
+      const validation = validateField(name, value);
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: validation.valid ? '' : validation.message
+      }));
+    }
   };
 
-  // Handle file uploads
+  // Handle field blur (when user leaves the field) with async validation for email and NIC
+  const handleFieldBlur = async (fieldName) => {
+    setTouchedFields(prev => ({
+      ...prev,
+      [fieldName]: true
+    }));
+
+    const value = userDetails[fieldName];
+
+    // For email and NIC, use async validation to check duplicates
+    if (fieldName === 'email') {
+      const validation = await validateEmailAsync(value);
+      setValidationErrors(prev => ({
+        ...prev,
+        [fieldName]: validation.valid ? '' : validation.message
+      }));
+    } else if (fieldName === 'nicNo') {
+      const validation = await validateNICAsync(value);
+      setValidationErrors(prev => ({
+        ...prev,
+        [fieldName]: validation.valid ? '' : validation.message
+      }));
+    } else {
+      // For other fields, use sync validation
+      const validation = validateField(fieldName, value);
+      setValidationErrors(prev => ({
+        ...prev,
+        [fieldName]: validation.valid ? '' : validation.message
+      }));
+    }
+  };
+
+  // Handle file uploads with validation
   const handleFileUpload = (e, fieldName) => {
     const file = e.target.files[0];
+
     setUserDetails({
       ...userDetails,
       [fieldName]: file,
     });
+
+    // Mark field as touched
+    setTouchedFields(prev => ({
+      ...prev,
+      [fieldName]: true
+    }));
+
+    // Validate file
+    if (file) {
+      let validation = { valid: true, message: '' };
+
+      const fileOptions = {
+        maxSize: 10 * 1024 * 1024, // 10MB default
+        allowedTypes: [],
+        allowedExtensions: []
+      };
+
+      // Set specific options based on field
+      if (fieldName === 'nicFront' || fieldName === 'nicBack') {
+        fileOptions.maxSize = 5 * 1024 * 1024; // 5MB
+        fileOptions.allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        fileOptions.allowedExtensions = ['.jpg', '.jpeg', '.png'];
+      } else if (fieldName === 'spaPhotosBanner') {
+        fileOptions.allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        fileOptions.allowedExtensions = ['.jpg', '.jpeg', '.png'];
+      } else if (fieldName === 'brAttachment' || fieldName === 'form1Certificate') {
+        fileOptions.allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        fileOptions.allowedExtensions = ['.pdf', '.doc', '.docx'];
+      } else {
+        fileOptions.allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/jpg', 'image/png'];
+        fileOptions.allowedExtensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'];
+      }
+
+      const fieldDisplayNames = {
+        nicFront: 'NIC Front Photo',
+        nicBack: 'NIC Back Photo',
+        brAttachment: 'BR Attachment',
+        form1Certificate: 'Form 1 Certificate',
+        spaPhotosBanner: 'Spa Photos Banner',
+        otherDocument: 'Other Document'
+      };
+
+      validation = validateFile(file, fieldDisplayNames[fieldName] || fieldName, fileOptions);
+
+      setValidationErrors(prev => ({
+        ...prev,
+        [fieldName]: validation.valid ? '' : validation.message
+      }));
+
+      if (!validation.valid) {
+        // Show error alert
+        Swal.fire({
+          title: 'Invalid File',
+          text: validation.message,
+          icon: 'error',
+          confirmButtonColor: '#0A1428'
+        });
+
+        // Clear the file input
+        e.target.value = '';
+        setUserDetails(prev => ({
+          ...prev,
+          [fieldName]: null
+        }));
+      }
+    }
   };
 
-  // Handle form submission
-  const handleSubmit = (e) => {
+  // Handle form submission with full validation including async checks
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would typically validate and send data to your backend
+
+    // Mark all fields as touched
+    const allFields = Object.keys(userDetails);
+    const newTouchedFields = {};
+    allFields.forEach(field => {
+      newTouchedFields[field] = true;
+    });
+    setTouchedFields(newTouchedFields);
+
+    // Show loading indicator
+    Swal.fire({
+      title: 'Validating...',
+      text: 'Please wait while we validate your information',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // First do sync validation
+    const validation = validateAllFields(userDetails);
+
+    if (!validation.valid) {
+      setValidationErrors(validation.errors);
+
+      // Show error summary
+      Swal.fire({
+        title: 'Validation Error',
+        html: '<div style="text-align: left;"><p>Please fix the following errors:</p><ul style="margin-top: 10px;">' +
+          Object.entries(validation.errors).map(([field, message]) =>
+            `<li style="margin: 5px 0;"><strong>${field}:</strong> ${message}</li>`
+          ).join('') + '</ul></div>',
+        icon: 'error',
+        confirmButtonColor: '#0A1428',
+        width: '600px'
+      });
+
+      return;
+    }
+
+    // Then check for email duplication
+    const emailCheck = await validateEmailAsync(userDetails.email);
+    if (!emailCheck.valid) {
+      setValidationErrors(prev => ({
+        ...prev,
+        email: emailCheck.message
+      }));
+
+      Swal.fire({
+        title: 'Email Already Registered',
+        html: `<div style="text-align: center;">
+          <p style="margin: 15px 0;">${emailCheck.message}</p>
+          <p style="margin: 15px 0; color: #666;">This email address is already associated with an existing account.</p>
+          <p style="margin: 15px 0; font-weight: bold;">Please use a different email address or <a href="/login" style="color: #0A1428; text-decoration: underline;">login to your existing account</a>.</p>
+        </div>`,
+        icon: 'error',
+        confirmButtonColor: '#0A1428',
+        confirmButtonText: 'OK',
+        width: '500px'
+      });
+
+      return;
+    }
+
+    // Then check for NIC duplication
+    const nicCheck = await validateNICAsync(userDetails.nicNo);
+    if (!nicCheck.valid) {
+      setValidationErrors(prev => ({
+        ...prev,
+        nicNo: nicCheck.message
+      }));
+
+      Swal.fire({
+        title: 'NIC Already Registered',
+        html: `<div style="text-align: center;">
+          <p style="margin: 15px 0;">${nicCheck.message}</p>
+          <p style="margin: 15px 0; color: #666;">This NIC is already associated with an existing account.</p>
+          <p style="margin: 15px 0; font-weight: bold;">Please verify your NIC or <a href="/login" style="color: #0A1428; text-decoration: underline;">login to your existing account</a>.</p>
+        </div>`,
+        icon: 'error',
+        confirmButtonColor: '#0A1428',
+        confirmButtonText: 'OK',
+        width: '500px'
+      });
+
+      return;
+    }
+
+    // Clear validation errors
+    setValidationErrors({});
+
+    // Close loading
+    Swal.close();
+
     console.log("Form submitted:", userDetails);
     // Proceed to payment step
     setStep(4);
@@ -1412,6 +1918,8 @@ const Registration = () => {
             userDetails={userDetails}
             onDetailChange={handleUserDetailsChange}
             onFileUpload={handleFileUpload}
+            onFieldBlur={handleFieldBlur}
+            validationErrors={validationErrors}
             onBack={() => setStep(2)}
             onSubmit={handleSubmit}
           />

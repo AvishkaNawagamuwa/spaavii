@@ -284,6 +284,160 @@ const sendPaymentStatusEmail = async (toEmail, ownerName, spaName, status, payme
     }
 };
 
+/**
+ * Send password reset email with reset link
+ * @param {string} toEmail - Recipient's email address
+ * @param {string} userName - User's full name
+ * @param {string} resetToken - Password reset token
+ */
+const sendPasswordResetEmail = async (toEmail, userName, resetToken) => {
+    try {
+        const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: toEmail,
+            subject: "Password Reset Request - LSA Portal",
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h2 style="color: #001F3F; margin: 0;">Lanka Spa Association</h2>
+                        <p style="color: #666; margin: 5px 0;">SPA Portal - Password Reset</p>
+                    </div>
+                    
+                    <h3 style="color: #007bff;">Password Reset Request</h3>
+                    
+                    <p>Dear <strong>${userName}</strong>,</p>
+                    
+                    <p>We received a request to reset your password for your Lanka Spa Association portal account.</p>
+                    
+                    <div style="background-color: #e7f3ff; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #007bff;">
+                        <h4 style="color: #001F3F; margin-top: 0;">🔐 Reset Your Password</h4>
+                        <p>Click the button below to reset your password:</p>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${resetLink}" 
+                           style="background-color: #001F3F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                            Reset Password
+                        </a>
+                    </div>
+                    
+                    <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                        <h4 style="color: #856404; margin-top: 0;">⚠️ Important Security Information:</h4>
+                        <ul style="color: #856404; margin: 0; padding-left: 20px;">
+                            <li>This password reset link will expire in <strong>1 hour</strong></li>
+                            <li>If you didn't request this reset, please ignore this email</li>
+                            <li>Your password will remain unchanged if you don't click the link</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p style="font-size: 12px; color: #666; margin: 0;">
+                            <strong>Can't click the button?</strong> Copy and paste this link into your browser:<br>
+                            <a href="${resetLink}" style="color: #007bff; word-break: break-all;">${resetLink}</a>
+                        </p>
+                    </div>
+                    
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                    
+                    <p style="color: #666; font-size: 14px;">
+                        If you have any questions or need assistance, please contact our support team.<br>
+                        This email was sent automatically. Please do not reply to this email.
+                    </p>
+                    
+                    <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
+                        <p>Best regards,<br>
+                        <strong>Lanka Spa Association Security Team</strong></p>
+                        <p>© 2025 Lanka Spa Association. All rights reserved.</p>
+                    </div>
+                </div>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('✅ Password reset email sent successfully to:', toEmail);
+        console.log('📧 Message ID:', info.messageId);
+        return { success: true, messageId: info.messageId };
+
+    } catch (error) {
+        console.error('❌ Failed to send password reset email:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Send password change confirmation email
+ * @param {string} toEmail - Recipient's email address
+ * @param {string} userName - User's full name
+ */
+const sendPasswordChangedEmail = async (toEmail, userName) => {
+    try {
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: toEmail,
+            subject: "Password Changed Successfully - LSA Portal",
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h2 style="color: #001F3F; margin: 0;">Lanka Spa Association</h2>
+                        <p style="color: #666; margin: 5px 0;">SPA Portal - Security Alert</p>
+                    </div>
+                    
+                    <h3 style="color: #28a745;">Password Changed Successfully!</h3>
+                    
+                    <p>Dear <strong>${userName}</strong>,</p>
+                    
+                    <p>Your password for the Lanka Spa Association portal has been successfully changed.</p>
+                    
+                    <div style="background-color: #d4edda; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745;">
+                        <h4 style="color: #155724; margin-top: 0;">✅ Security Update</h4>
+                        <p style="color: #155724; margin: 0;"><strong>Date & Time:</strong> ${new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</p>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="http://localhost:5173/login" 
+                           style="background-color: #001F3F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                            Login to Portal
+                        </a>
+                    </div>
+                    
+                    <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545;">
+                        <h4 style="color: #721c24; margin-top: 0;">⚠️ Didn't Make This Change?</h4>
+                        <p style="color: #721c24; margin: 0;">
+                            If you didn't change your password, please contact our support team immediately. 
+                            Your account security may be compromised.
+                        </p>
+                    </div>
+                    
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                    
+                    <p style="color: #666; font-size: 14px;">
+                        For security reasons, if you suspect any unauthorized access to your account, 
+                        please contact us immediately.<br>
+                        This email was sent automatically. Please do not reply to this email.
+                    </p>
+                    
+                    <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
+                        <p>Best regards,<br>
+                        <strong>Lanka Spa Association Security Team</strong></p>
+                        <p>© 2025 Lanka Spa Association. All rights reserved.</p>
+                    </div>
+                </div>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('✅ Password changed confirmation email sent successfully to:', toEmail);
+        console.log('📧 Message ID:', info.messageId);
+        return { success: true, messageId: info.messageId };
+
+    } catch (error) {
+        console.error('❌ Failed to send password changed email:', error);
+        return { success: false, error: error.message };
+    }
+};
+
 // Test email connection
 const testEmailConnection = async () => {
     try {
@@ -300,5 +454,7 @@ module.exports = {
     sendRegistrationEmail,
     sendStatusUpdateEmail,
     sendPaymentStatusEmail,
+    sendPasswordResetEmail,
+    sendPasswordChangedEmail,
     testEmailConnection
 };

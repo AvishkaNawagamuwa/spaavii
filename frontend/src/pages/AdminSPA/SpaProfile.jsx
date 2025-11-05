@@ -22,6 +22,24 @@ const SpaProfile = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Credentials change state
+    const [showCredentialsForm, setShowCredentialsForm] = useState(false);
+    const [credentialsData, setCredentialsData] = useState({
+        current_password: '',
+        new_username: '',
+        new_password: '',
+        confirm_password: ''
+    });
+    const [credentialsLoading, setCredentialsLoading] = useState(false);
+    const [passwordValidation, setPasswordValidation] = useState({
+        minLength: false,
+        hasUppercase: false,
+        hasLowercase: false,
+        hasNumber: false,
+        hasSpecialChar: false,
+        passwordsMatch: false
+    });
+
     // Fetch SPA profile data
     const fetchSpaProfile = async () => {
         try {
@@ -88,6 +106,175 @@ const SpaProfile = () => {
 
     const handleRefresh = () => {
         fetchSpaProfile();
+    };
+
+    // Validate password in real-time
+    const validatePassword = (password, confirmPass) => {
+        setPasswordValidation({
+            minLength: password.length >= 8,
+            hasUppercase: /[A-Z]/.test(password),
+            hasLowercase: /[a-z]/.test(password),
+            hasNumber: /[0-9]/.test(password),
+            hasSpecialChar: /[@#$%!*]/.test(password),
+            passwordsMatch: password === confirmPass && password.length > 0
+        });
+    };
+
+    // Handle credentials input change
+    const handleCredentialsChange = (e) => {
+        const { name, value } = e.target;
+        setCredentialsData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+
+        // Validate password if it's being changed
+        if (name === 'new_password' || name === 'confirm_password') {
+            const newPass = name === 'new_password' ? value : credentialsData.new_password;
+            const confirmPass = name === 'confirm_password' ? value : credentialsData.confirm_password;
+            validatePassword(newPass, confirmPass);
+        }
+    };
+
+    // Handle credentials form submission
+    const handleCredentialsSubmit = async (e) => {
+        e.preventDefault();
+
+        // Get user data from localStorage
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'User not logged in',
+                icon: 'error',
+                confirmButtonColor: '#0A1428'
+            });
+            return;
+        }
+
+        const user = JSON.parse(userData);
+
+        // Validate inputs
+        if (!credentialsData.current_password) {
+            Swal.fire({
+                title: 'Required!',
+                text: 'Current password is required',
+                icon: 'warning',
+                confirmButtonColor: '#0A1428'
+            });
+            return;
+        }
+
+        if (!credentialsData.new_username && !credentialsData.new_password) {
+            Swal.fire({
+                title: 'Required!',
+                text: 'Please provide new username or new password to change',
+                icon: 'warning',
+                confirmButtonColor: '#0A1428'
+            });
+            return;
+        }
+
+        // Validate password if provided
+        if (credentialsData.new_password) {
+            if (!passwordValidation.minLength || !passwordValidation.hasUppercase ||
+                !passwordValidation.hasLowercase || !passwordValidation.hasNumber ||
+                !passwordValidation.hasSpecialChar) {
+                Swal.fire({
+                    title: 'Invalid Password!',
+                    text: 'Password does not meet security requirements',
+                    icon: 'error',
+                    confirmButtonColor: '#0A1428'
+                });
+                return;
+            }
+
+            if (!passwordValidation.passwordsMatch) {
+                Swal.fire({
+                    title: 'Password Mismatch!',
+                    text: 'New password and confirm password do not match',
+                    icon: 'error',
+                    confirmButtonColor: '#0A1428'
+                });
+                return;
+            }
+        }
+
+        // Confirm before updating
+        const result = await Swal.fire({
+            title: 'Confirm Changes',
+            text: 'Are you sure you want to update your credentials? You will need to login again.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0A1428',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, update!',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        try {
+            setCredentialsLoading(true);
+
+            const response = await fetch('/api/auth/change-credentials', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_id: user.id,
+                    current_password: credentialsData.current_password,
+                    new_username: credentialsData.new_username || undefined,
+                    new_password: credentialsData.new_password || undefined,
+                    confirm_password: credentialsData.confirm_password || undefined
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                await Swal.fire({
+                    title: 'Success!',
+                    text: result.message,
+                    icon: 'success',
+                    confirmButtonColor: '#0A1428'
+                });
+
+                // Clear credentials form
+                setCredentialsData({
+                    current_password: '',
+                    new_username: '',
+                    new_password: '',
+                    confirm_password: ''
+                });
+                setShowCredentialsForm(false);
+
+                // Logout and redirect to login page
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                window.location.href = '/';
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: result.message || 'Failed to update credentials',
+                    icon: 'error',
+                    confirmButtonColor: '#0A1428'
+                });
+            }
+        } catch (error) {
+            console.error('Update credentials error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Network error occurred. Please try again.',
+                icon: 'error',
+                confirmButtonColor: '#0A1428'
+            });
+        } finally {
+            setCredentialsLoading(false);
+        }
     };
 
     if (loading) {
@@ -214,6 +401,167 @@ const SpaProfile = () => {
                         <p className="text-lg text-gray-800 bg-gray-50 p-3 rounded-lg">{spaData.district || 'N/A'}</p>
                     </div>
                 </div>
+            </div>
+
+            {/* Change Credentials Section */}
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center">
+                        <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
+                            <FiLock className="text-purple-600" size={20} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-900">Security Settings</h3>
+                            <p className="text-sm text-gray-600">Change your username and password</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setShowCredentialsForm(!showCredentialsForm)}
+                        className={`px-6 py-2 rounded-lg font-medium transition-colors ${showCredentialsForm
+                                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                            }`}
+                    >
+                        {showCredentialsForm ? 'Cancel' : 'Change Credentials'}
+                    </button>
+                </div>
+
+                {showCredentialsForm && (
+                    <form onSubmit={handleCredentialsSubmit} className="space-y-6 border-t pt-6">
+                        {/* Current Password */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Current Password <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="password"
+                                name="current_password"
+                                value={credentialsData.current_password}
+                                onChange={handleCredentialsChange}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                placeholder="Enter your current password"
+                                required
+                            />
+                        </div>
+
+                        {/* New Username */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                New Username (Optional)
+                            </label>
+                            <input
+                                type="text"
+                                name="new_username"
+                                value={credentialsData.new_username}
+                                onChange={handleCredentialsChange}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                placeholder="Enter new username (leave empty to keep current)"
+                            />
+                        </div>
+
+                        {/* New Password */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                New Password (Optional)
+                            </label>
+                            <input
+                                type="password"
+                                name="new_password"
+                                value={credentialsData.new_password}
+                                onChange={handleCredentialsChange}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                placeholder="Enter new password (leave empty to keep current)"
+                            />
+                        </div>
+
+                        {/* Confirm Password */}
+                        {credentialsData.new_password && (
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Confirm New Password <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="password"
+                                    name="confirm_password"
+                                    value={credentialsData.confirm_password}
+                                    onChange={handleCredentialsChange}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    placeholder="Re-enter your new password"
+                                    required
+                                />
+                            </div>
+                        )}
+
+                        {/* Password Requirements */}
+                        {credentialsData.new_password && (
+                            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                                <p className="text-sm font-semibold text-gray-700 mb-3">Password Requirements:</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    <div className={`flex items-center space-x-2 text-sm ${passwordValidation.minLength ? 'text-green-600' : 'text-gray-500'}`}>
+                                        {passwordValidation.minLength ? <FiCheck size={16} /> : <span className="w-4 h-4 border-2 border-gray-400 rounded-full"></span>}
+                                        <span>Minimum 8 characters</span>
+                                    </div>
+                                    <div className={`flex items-center space-x-2 text-sm ${passwordValidation.hasUppercase ? 'text-green-600' : 'text-gray-500'}`}>
+                                        {passwordValidation.hasUppercase ? <FiCheck size={16} /> : <span className="w-4 h-4 border-2 border-gray-400 rounded-full"></span>}
+                                        <span>At least one uppercase letter (A-Z)</span>
+                                    </div>
+                                    <div className={`flex items-center space-x-2 text-sm ${passwordValidation.hasLowercase ? 'text-green-600' : 'text-gray-500'}`}>
+                                        {passwordValidation.hasLowercase ? <FiCheck size={16} /> : <span className="w-4 h-4 border-2 border-gray-400 rounded-full"></span>}
+                                        <span>At least one lowercase letter (a-z)</span>
+                                    </div>
+                                    <div className={`flex items-center space-x-2 text-sm ${passwordValidation.hasNumber ? 'text-green-600' : 'text-gray-500'}`}>
+                                        {passwordValidation.hasNumber ? <FiCheck size={16} /> : <span className="w-4 h-4 border-2 border-gray-400 rounded-full"></span>}
+                                        <span>At least one number (0-9)</span>
+                                    </div>
+                                    <div className={`flex items-center space-x-2 text-sm ${passwordValidation.hasSpecialChar ? 'text-green-600' : 'text-gray-500'}`}>
+                                        {passwordValidation.hasSpecialChar ? <FiCheck size={16} /> : <span className="w-4 h-4 border-2 border-gray-400 rounded-full"></span>}
+                                        <span>At least one special char (@#$%!*)</span>
+                                    </div>
+                                    <div className={`flex items-center space-x-2 text-sm ${passwordValidation.passwordsMatch ? 'text-green-600' : 'text-gray-500'}`}>
+                                        {passwordValidation.passwordsMatch ? <FiCheck size={16} /> : <span className="w-4 h-4 border-2 border-gray-400 rounded-full"></span>}
+                                        <span>Passwords match</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Submit Button */}
+                        <div className="flex justify-end space-x-4 pt-4">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowCredentialsForm(false);
+                                    setCredentialsData({
+                                        current_password: '',
+                                        new_username: '',
+                                        new_password: '',
+                                        confirm_password: ''
+                                    });
+                                }}
+                                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={credentialsLoading}
+                                className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                            >
+                                {credentialsLoading ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                        <span>Updating...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <FiCheck size={18} />
+                                        <span>Update Credentials</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                )}
             </div>
         </div>
     );

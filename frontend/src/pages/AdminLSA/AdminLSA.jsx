@@ -47,6 +47,8 @@ import assets from '../../assets/images/images';
 import Dashboard from './Dashboard';
 import ManageSpas from './ManageSpas';
 import ManageTherapists from './ManageTherapists';
+import AccountSettings from './AccountSettings';
+import AccountManagement from './AccountManagement';
 
 // Helper function to fix bank slip URLs
 const fixBankSlipUrl = (bankSlipPath) => {
@@ -82,6 +84,17 @@ const AdminLSA = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Get user role from localStorage
+  const getUserRole = () => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    console.log('👤 User from localStorage:', user);
+    console.log('🎭 User role:', user.role);
+    return user.role || 'admin_lsa';
+  };
+
+  const [userRole] = useState(getUserRole());
+  console.log('🔑 Current userRole state:', userRole);
 
   // Socket.io connection
   const [socket, setSocket] = useState(null);
@@ -139,6 +152,11 @@ const AdminLSA = () => {
     };
 
     window.addEventListener('changeTab', handleTabChange);
+
+    // Set initial tab based on role
+    if (userRole === 'financial_officer') {
+      setActiveTab('financial');
+    }
 
     // Load initial data
     loadDashboardData();
@@ -994,15 +1012,31 @@ const AdminLSA = () => {
     }
   }, [activeTab, financialTab, selectedYear]);
 
-  // Navigation items
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: HomeIcon },
-    { id: 'spas', label: 'Manage Spas', icon: BuildingOfficeIcon },
-    { id: 'therapists', label: 'Manage Therapists', icon: UserGroupIcon },
-    { id: 'financial', label: 'Financial', icon: CreditCardIcon },
-    { id: 'third-party', label: 'Third-Party Login', icon: KeyIcon },
-    { id: 'notifications', label: 'Notification History', icon: BellIcon },
-  ];
+  // Navigation items based on role
+  const getNavItems = () => {
+    const allItems = [
+      { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, roles: ['super_admin', 'admin', 'admin_lsa'] },
+      { id: 'spas', label: 'Manage Spas', icon: BuildingOfficeIcon, roles: ['super_admin', 'admin', 'admin_lsa'] },
+      { id: 'therapists', label: 'Manage Therapists', icon: UserGroupIcon, roles: ['super_admin', 'admin', 'admin_lsa'] },
+      { id: 'financial', label: 'Financial', icon: CreditCardIcon, roles: ['super_admin', 'admin', 'financial_officer', 'admin_lsa'] },
+      { id: 'third-party', label: 'Third-Party Login', icon: KeyIcon, roles: ['super_admin', 'admin', 'admin_lsa'] },
+      { id: 'notifications', label: 'Notification History', icon: BellIcon, roles: ['super_admin', 'admin', 'admin_lsa'] },
+      { id: 'account-settings', label: 'Account Settings', icon: CogIcon, roles: ['super_admin', 'admin', 'admin_lsa'] },
+      { id: 'account-management', label: 'Account Management', icon: UserGroupIcon, roles: ['super_admin'] },
+    ];
+
+    console.log('📋 All available navigation items:', allItems);
+    console.log('🎭 Filtering for role:', userRole);
+
+    // Filter items based on user role
+    const filtered = allItems.filter(item => item.roles.includes(userRole));
+    console.log('✅ Filtered navigation items:', filtered);
+
+    return filtered;
+  };
+
+  const navItems = getNavItems();
+  console.log('🗂️ Final navItems:', navItems);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -1018,6 +1052,10 @@ const AdminLSA = () => {
         return renderThirdPartyLogin();
       case 'notifications':
         return renderNotificationHistory();
+      case 'account-settings':
+        return <AccountSettings />;
+      case 'account-management':
+        return <AccountManagement />;
       default:
         return <Dashboard />;
     }

@@ -139,6 +139,88 @@ async function generatePaymentReference(type = 'registration') {
     }
 }
 
+// GET /api/enhanced-registration/check-email/:email
+// Check if email already exists in the system
+router.get('/check-email/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+
+        if (!email || !email.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required'
+            });
+        }
+
+        const [rows] = await db.execute(
+            'SELECT id FROM spas WHERE email = ?',
+            [email.trim()]
+        );
+
+        if (rows.length > 0) {
+            return res.json({
+                success: false,
+                exists: true,
+                message: 'This email is already registered in our system'
+            });
+        }
+
+        return res.json({
+            success: true,
+            exists: false,
+            message: 'Email is available'
+        });
+
+    } catch (error) {
+        console.error('Error checking email:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error checking email availability'
+        });
+    }
+});
+
+// GET /api/enhanced-registration/check-nic/:nic
+// Check if NIC already exists in the system
+router.get('/check-nic/:nic', async (req, res) => {
+    try {
+        const { nic } = req.params;
+
+        if (!nic || !nic.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'NIC is required'
+            });
+        }
+
+        const [rows] = await db.execute(
+            'SELECT id FROM spas WHERE owner_nic = ?',
+            [nic.trim()]
+        );
+
+        if (rows.length > 0) {
+            return res.json({
+                success: false,
+                exists: true,
+                message: 'This NIC is already registered in our system'
+            });
+        }
+
+        return res.json({
+            success: true,
+            exists: false,
+            message: 'NIC is available'
+        });
+
+    } catch (error) {
+        console.error('Error checking NIC:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error checking NIC availability'
+        });
+    }
+});
+
 // POST /api/enhanced-registration/submit
 // Complete registration with all files and payment info
 router.post('/submit', upload.fields([
@@ -161,7 +243,7 @@ router.post('/submit', upload.fields([
             // User details
             firstName, lastName, email, telephone, cellphone, nicNo,
             // Spa details
-            spaName, spaAddressLine1, spaAddressLine2, spaProvince, spaPostalCode,
+            spaName, spaAddressLine1, spaAddressLine2, spaProvince, spaPostalCode, policeDivision,
             spaTelephone, spaBRNumber,
             // Payment details
             paymentMethod, bankDetails
@@ -249,12 +331,12 @@ router.post('/submit', upload.fields([
         // Insert spa with ALL document paths
         const [spaResult] = await connection.execute(`
             INSERT INTO spas (
-                name, owner_fname, owner_lname, email, phone, address, status,
+                name, owner_fname, owner_lname, email, phone, address, police_division, status,
                 nic_front_path, nic_back_path, br_attachment_path, 
                 form1_certificate_path, spa_banner_photos_path, other_document_path
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-            spaName, firstName, lastName, email, spaTelephone, fullAddress, 'pending',
+            spaName, firstName, lastName, email, spaTelephone, fullAddress, policeDivision, 'pending',
             nicFrontPath, nicBackPath, brAttachmentPath,
             form1CertPath, spaBannerPath, otherDocPath
         ]);

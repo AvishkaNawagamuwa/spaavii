@@ -46,6 +46,7 @@ const AddTherapist = () => {
     const [selectedForBulk, setSelectedForBulk] = useState([]);
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [checkingNIC, setCheckingNIC] = useState(false);
 
     // Camera-specific state for Therapist Image
     const [showCamera, setShowCamera] = useState(false);
@@ -118,11 +119,26 @@ const AddTherapist = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const nextStep = () => {
-        if (validateStep(currentStep)) {
-            if (currentStep < 3) {
-                setCurrentStep(currentStep + 1);
+    const nextStep = async () => {
+        // First validate the current step
+        if (!validateStep(currentStep)) {
+            return;
+        }
+
+        // If on step 1, check for NIC duplication before proceeding
+        if (currentStep === 1 && formData.nic.trim()) {
+            setCheckingNIC(true);
+            const nicCheckPassed = await checkNICBeforeNext(formData.nic);
+            setCheckingNIC(false);
+
+            if (!nicCheckPassed) {
+                return; // Don't proceed if NIC is duplicated
             }
+        }
+
+        // All validations passed, move to next step
+        if (currentStep < 3) {
+            setCurrentStep(currentStep + 1);
         }
     };
 
@@ -143,7 +159,102 @@ const AddTherapist = () => {
         }
     };
 
-    const handleFileChange = (e, type) => {
+    // Check if NIC already exists in database (for onBlur - shows warning)
+    const checkNICExists = async (nicValue) => {
+        if (!nicValue.trim()) return;
+
+        // Basic NIC format validation first
+        const oldNICPattern = /^[0-9]{9}[VXvx]$/;
+        const newNICPattern = /^[0-9]{12}$/;
+
+        if (!oldNICPattern.test(nicValue) && !newNICPattern.test(nicValue)) {
+            return; // Don't check database if format is invalid
+        }
+
+        try {
+            const response = await fetch('http://localhost:3001/api/admin-spa-new/check-nic', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nic: nicValue })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.exists) {
+                // NIC already exists and status is NOT resign/resigned
+                setErrors(prev => ({
+                    ...prev,
+                    nic: `NIC is already registered with status: ${result.status}. Cannot duplicate.`
+                }));
+
+                Swal.fire({
+                    title: 'NIC Already Registered',
+                    text: `This NIC is already registered in the system with status: ${result.status}. Only resigned therapists can re-register.`,
+                    icon: 'error',
+                    confirmButtonColor: '#d33'
+                });
+            } else if (result.success && !result.exists) {
+                // Clear NIC error if it was previously set
+                setErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.nic;
+                    return newErrors;
+                });
+            }
+        } catch (error) {
+            console.error('Error checking NIC:', error);
+            // Don't show error to user, let them proceed and backend will validate
+        }
+    };
+
+    // Check NIC before allowing Next button (blocking validation)
+    const checkNICBeforeNext = async (nicValue) => {
+        if (!nicValue.trim()) return true;
+
+        // Basic NIC format validation first
+        const oldNICPattern = /^[0-9]{9}[VXvx]$/;
+        const newNICPattern = /^[0-9]{12}$/;
+
+        if (!oldNICPattern.test(nicValue) && !newNICPattern.test(nicValue)) {
+            return true; // Let the regular validation handle format errors
+        }
+
+        try {
+            const response = await fetch('http://localhost:3001/api/admin-spa-new/check-nic', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nic: nicValue })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.exists) {
+                // NIC already exists and status is NOT resign/resigned
+                setErrors(prev => ({
+                    ...prev,
+                    nic: `NIC is already registered with status: ${result.status}. Cannot duplicate.`
+                }));
+
+                Swal.fire({
+                    title: 'Cannot Proceed',
+                    text: `This NIC is already registered with status: ${result.status}. Please use a different NIC or contact administrator if this is an error.`,
+                    icon: 'error',
+                    confirmButtonColor: '#d33'
+                });
+
+                return false; // Block progression
+            }
+
+            return true; // Allow progression
+        } catch (error) {
+            console.error('Error checking NIC:', error);
+            return true; // On error, allow progression (backend will validate)
+        }
+    }; const handleFileChange = (e, type) => {
         const file = e.target.files[0];
         if (!file) return;
 
@@ -521,6 +632,7 @@ const AddTherapist = () => {
                                         placeholder="NIC Number (902541234V or 200254123456)"
                                         value={formData.nic}
                                         onChange={handleInputChange}
+                                        onBlur={(e) => checkNICExists(e.target.value)}
                                         maxLength="12"
                                         className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#0A1428] outline-none ${errors.nic ? 'border-red-500 bg-red-50' : 'border-gray-300'
                                             }`}
@@ -779,13 +891,29 @@ const AddTherapist = () => {
                 </div>
 
                 <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-                    <button onClick={prevStep} disabled={currentStep === 1} className={`flex items-center px-6 py-3 rounded-lg font-medium ${currentStep === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}>
+                    <button onClick={prevStep} disabled={currentStep === 1 || checkingNIC} className={`flex items-center px-6 py-3 rounded-lg font-medium ${currentStep === 1 || checkingNIC ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}>
                         <FiChevronLeft className="mr-2" /> Previous
                     </button>
                     <span className="text-gray-500">Step {currentStep} of 3</span>
                     {currentStep < 3 ? (
-                        <button onClick={nextStep} className="flex items-center px-6 py-3 bg-[#0A1428] text-white rounded-lg font-medium hover:bg-[#1a2f4a]">
-                            Next <FiChevronLeft className="ml-2 rotate-180" />
+                        <button
+                            onClick={nextStep}
+                            disabled={checkingNIC}
+                            className={`flex items-center px-6 py-3 rounded-lg font-medium ${checkingNIC
+                                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                                    : 'bg-[#0A1428] text-white hover:bg-[#1a2f4a]'
+                                }`}
+                        >
+                            {checkingNIC ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                    Validating NIC...
+                                </>
+                            ) : (
+                                <>
+                                    Next <FiChevronLeft className="ml-2 rotate-180" />
+                                </>
+                            )}
                         </button>
                     ) : (
                         <button

@@ -388,6 +388,61 @@ router.get('/spas/:spaId/therapists', authenticateAdminSPA, async (req, res) => 
     }
 });
 
+// Check if NIC already exists in database
+router.post('/check-nic', async (req, res) => {
+    try {
+        const { nic } = req.body;
+
+        if (!nic) {
+            return res.status(400).json({
+                success: false,
+                message: 'NIC is required'
+            });
+        }
+
+        // Check if NIC exists in database
+        const [existingTherapist] = await db.execute(
+            'SELECT id, nic, status FROM therapists WHERE nic = ? OR nic_number = ?',
+            [nic, nic]
+        );
+
+        if (existingTherapist.length > 0) {
+            const therapist = existingTherapist[0];
+
+            // If status is 'resign' or 'resigned', allow registration
+            if (therapist.status === 'resign' || therapist.status === 'resigned') {
+                return res.json({
+                    success: true,
+                    exists: false,
+                    message: 'NIC can be registered (previous therapist resigned)'
+                });
+            }
+
+            // For any other status, NIC is not available
+            return res.json({
+                success: true,
+                exists: true,
+                status: therapist.status,
+                message: `NIC is already registered with status: ${therapist.status}`
+            });
+        }
+
+        // NIC not found - available for registration
+        res.json({
+            success: true,
+            exists: false,
+            message: 'NIC is available for registration'
+        });
+    } catch (error) {
+        console.error('Error checking NIC:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error checking NIC',
+            error: error.message
+        });
+    }
+});
+
 // Add new therapist request - Enhanced with all fields and validation
 router.post('/add-therapist', upload.fields([
     { name: 'nicFile', maxCount: 1 },
@@ -426,6 +481,24 @@ router.post('/add-therapist', upload.fields([
                 success: false,
                 message: 'Invalid phone format. Must be +94xxxxxxxxx'
             });
+        }
+
+        // Check if NIC already exists (except for resigned therapists)
+        const [existingTherapist] = await db.execute(
+            'SELECT id, nic, status FROM therapists WHERE nic = ? OR nic_number = ?',
+            [nic, nic]
+        );
+
+        if (existingTherapist.length > 0) {
+            const therapist = existingTherapist[0];
+
+            // Allow re-registration only if previous status is 'resign' or 'resigned'
+            if (therapist.status !== 'resign' && therapist.status !== 'resigned') {
+                return res.status(400).json({
+                    success: false,
+                    message: `NIC is already registered with status: ${therapist.status}. Only resigned therapists can re-register.`
+                });
+            }
         }
 
         // Process uploaded files
@@ -720,8 +793,8 @@ router.patch('/notifications/:id/read', async (req, res) => {
     }
 });
 
-// Update therapist status (resign/terminate)
-router.put('/therapists/:therapistId/status', async (req, res) => {
+// Update therapist status (resign/terminate) with police report upload
+router.put('/therapists/:therapistId/status', upload.single('police_report'), async (req, res) => {
     try {
         const { therapistId } = req.params;
         const { status, reason, spa_id } = req.body;
@@ -771,14 +844,30 @@ router.put('/therapists/:therapistId/status', async (req, res) => {
             });
         }
 
-        // Update therapist status
-        const updateQuery = status === 'terminated'
-            ? 'UPDATE therapists SET status = ?, terminate_reason = ?, updated_at = NOW() WHERE id = ? AND spa_id = ?'
-            : 'UPDATE therapists SET status = ?, resign_reason = ?, updated_at = NOW() WHERE id = ? AND spa_id = ?';
+        // Process police report file if uploaded
+        const police_report_path = req.file ? `/uploads/therapist-documents/${req.file.filename}` : null;
 
-        const updateParams = status === 'terminated'
-            ? [status, reason || null, therapistId, spa_id]
-            : [status, reason || 'Voluntary resignation', therapistId, spa_id];
+        // Update therapist status with police report
+        let updateQuery, updateParams;
+
+        if (status === 'terminated') {
+            if (police_report_path) {
+                updateQuery = 'UPDATE therapists SET status = ?, terminate_reason = ?, police_report_path = ?, updated_at = NOW() WHERE id = ? AND spa_id = ?';
+                updateParams = [status, reason || null, police_report_path, therapistId, spa_id];
+            } else {
+                updateQuery = 'UPDATE therapists SET status = ?, terminate_reason = ?, updated_at = NOW() WHERE id = ? AND spa_id = ?';
+                updateParams = [status, reason || null, therapistId, spa_id];
+            }
+        } else {
+            // For resigned status
+            if (police_report_path) {
+                updateQuery = 'UPDATE therapists SET status = ?, resign_reason = ?, police_report_path = ?, updated_at = NOW() WHERE id = ? AND spa_id = ?';
+                updateParams = [status, reason || 'Voluntary resignation', police_report_path, therapistId, spa_id];
+            } else {
+                updateQuery = 'UPDATE therapists SET status = ?, resign_reason = ?, updated_at = NOW() WHERE id = ? AND spa_id = ?';
+                updateParams = [status, reason || 'Voluntary resignation', therapistId, spa_id];
+            }
+        }
 
         await db.execute(updateQuery, updateParams);
 
@@ -786,9 +875,14 @@ router.put('/therapists/:therapistId/status', async (req, res) => {
         const therapistName = existingTherapist[0].first_name && existingTherapist[0].last_name
             ? `${existingTherapist[0].first_name} ${existingTherapist[0].last_name}`
             : existingTherapist[0].name || 'Unknown Therapist';
-        const activityDescription = status === 'terminated'
+
+        let activityDescription = status === 'terminated'
             ? `Therapist ${therapistName} has been terminated. Reason: ${reason}`
             : `Therapist ${therapistName} has resigned.`;
+
+        if (police_report_path) {
+            activityDescription += ` (Police report uploaded)`;
+        }
 
         await db.execute(
             'INSERT INTO activity_logs (entity_type, entity_id, action, description, actor_type, actor_id, actor_name, old_status, new_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
@@ -799,7 +893,8 @@ router.put('/therapists/:therapistId/status', async (req, res) => {
             success: true,
             message: `Therapist ${status} successfully`,
             id: therapistId,
-            status: status
+            status: status,
+            police_report_uploaded: police_report_path ? true : false
         });
 
     } catch (error) {

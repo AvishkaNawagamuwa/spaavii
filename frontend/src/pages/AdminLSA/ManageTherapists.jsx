@@ -34,7 +34,8 @@ const ManageTherapists = () => {
         total: 0,
         approved: 0,
         rejected: 0,
-        pending: 0
+        pending: 0,
+        terminated: 0
     });
 
     useEffect(() => {
@@ -234,12 +235,14 @@ const ManageTherapists = () => {
         const approved = therapists.filter(therapist => therapist.status === 'approved').length;
         const rejected = therapists.filter(therapist => therapist.status === 'rejected').length;
         const pending = therapists.filter(therapist => therapist.status === 'pending').length;
+        const terminated = therapists.filter(therapist => therapist.status === 'terminated').length;
 
         setStats({
             total,
             approved,
             rejected,
-            pending
+            pending,
+            terminated
         });
     };
 
@@ -363,6 +366,39 @@ const ManageTherapists = () => {
         }
     };
 
+    const handleRemoveTermination = async (therapistId) => {
+        try {
+            const result = await Swal.fire({
+                title: 'Remove Termination',
+                text: 'Are you sure you want to change this therapist status from Terminated to Resigned?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, Change to Resigned'
+            });
+
+            if (result.isConfirmed) {
+                await axios.put(`http://localhost:3001/api/lsa/therapists/${therapistId}/remove-termination`);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Therapist status changed to Resigned successfully!'
+                });
+
+                fetchTherapists(); // Refresh data
+            }
+        } catch (error) {
+            console.error('Error removing termination:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to remove termination. Please try again.'
+            });
+        }
+    };
+
     const formatExperience = (experienceYears) => {
         if (!experienceYears || experienceYears === 0) return '0 years';
         if (experienceYears === 1) return '1 year';
@@ -415,7 +451,7 @@ const ManageTherapists = () => {
             </div>
 
             {/* Main Category Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                 <div className="bg-white rounded-lg shadow p-4 border-l-4 border-[#001F3F]">
                     <div className="flex items-center">
                         <FiGrid className="text-[#001F3F] mr-3" size={20} />
@@ -467,6 +503,20 @@ const ManageTherapists = () => {
                         </div>
                     </div>
                 </div>
+
+                <div
+                    className={`bg-white rounded-lg shadow p-4 border-l-4 border-purple-500 cursor-pointer transition-all ${activeTab === 'terminated' ? 'ring-2 ring-purple-500 bg-purple-50' : 'hover:bg-gray-50'
+                        }`}
+                    onClick={() => setActiveTab('terminated')}
+                >
+                    <div className="flex items-center">
+                        <FiUserX className="text-purple-500 mr-3" size={20} />
+                        <div>
+                            <p className="text-sm text-gray-600">Terminated Therapists</p>
+                            <p className="text-xl font-bold text-gray-800">{stats.terminated}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Search Bar */}
@@ -500,6 +550,7 @@ const ManageTherapists = () => {
                             {activeTab === 'pending' && 'Viewing 1 therapist(s)'}
                             {activeTab === 'approved' && `Viewing ${stats.approved} therapist(s)`}
                             {activeTab === 'rejected' && `Viewing ${stats.rejected} therapist(s)`}
+                            {activeTab === 'terminated' && `Viewing ${stats.terminated} therapist(s)`}
                         </span>
                     </div>
                 </div>
@@ -626,6 +677,17 @@ const ManageTherapists = () => {
                                                         </button>
                                                     </>
                                                 )}
+
+                                                {therapist.status === 'terminated' && (
+                                                    <button
+                                                        onClick={() => handleRemoveTermination(therapist.id)}
+                                                        className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-1"
+                                                        title="Remove Termination"
+                                                    >
+                                                        <FiCheck size={12} />
+                                                        Remove Termination
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -725,6 +787,40 @@ const ManageTherapists = () => {
                                             </p>
                                         </div>
                                     )}
+                                    {selectedTherapist.status === 'terminated' && selectedTherapist.terminate_reason && (
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Termination Reason</label>
+                                            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                                                {selectedTherapist.terminate_reason}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {selectedTherapist.status === 'terminated' && selectedTherapist.police_report_path && (
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Police Report</label>
+                                            <div className="flex gap-2 mt-1">
+                                                <button
+                                                    onClick={() => window.open(`http://localhost:3001${selectedTherapist.police_report_path}`, '_blank')}
+                                                    className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
+                                                >
+                                                    <FiEye size={12} />
+                                                    View Police Report
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        const link = document.createElement('a');
+                                                        link.href = `http://localhost:3001${selectedTherapist.police_report_path}`;
+                                                        link.download = `police_report_${selectedTherapist.id}`;
+                                                        link.click();
+                                                    }}
+                                                    className="px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-1"
+                                                >
+                                                    <FiDownload size={12} />
+                                                    Download
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -809,6 +905,22 @@ const ManageTherapists = () => {
                                     >
                                         <FiCheck size={16} />
                                         Approve
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Action Buttons for Terminated Therapists */}
+                            {selectedTherapist.status === 'terminated' && (
+                                <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                                    <button
+                                        onClick={() => {
+                                            setShowDetailsModal(false);
+                                            handleRemoveTermination(selectedTherapist.id);
+                                        }}
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                                    >
+                                        <FiCheck size={16} />
+                                        Remove Termination (Change to Resigned)
                                     </button>
                                 </div>
                             )}

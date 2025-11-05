@@ -876,6 +876,56 @@ router.put('/therapists/:therapistId/reject', asyncHandler(async (req, res) => {
 }));
 
 /**
+ * @route   PUT /api/lsa/therapists/:therapistId/remove-termination
+ * @desc    Remove termination and change status to resigned
+ * @access  Private (Admin)
+ */
+router.put('/therapists/:therapistId/remove-termination', asyncHandler(async (req, res) => {
+    try {
+        const { therapistId } = req.params;
+
+        console.log('🔄 Removing termination for therapist:', therapistId);
+
+        // Update therapist status from terminated to resigned
+        const [result] = await db.execute(
+            `UPDATE therapists 
+             SET status = 'resigned', 
+                 terminate_reason = NULL, 
+                 police_report_path = NULL,
+                 updated_at = NOW() 
+             WHERE id = ? AND status = 'terminated'`,
+            [therapistId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Therapist not found or not in terminated status'
+            });
+        }
+
+        console.log('✅ Therapist status changed from terminated to resigned');
+
+        res.json({
+            success: true,
+            message: 'Termination removed successfully. Status changed to resigned.',
+            data: {
+                therapist_id: therapistId,
+                new_status: 'resigned'
+            }
+        });
+
+    } catch (error) {
+        console.error('Remove termination error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to remove termination',
+            error: error.message
+        });
+    }
+}));
+
+/**
  * @route   PUT /api/lsa/therapists/:therapistId/status
  * @desc    Update therapist status
  * @access  Private (Admin)

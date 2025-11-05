@@ -174,23 +174,56 @@ const ResignTerminate = () => {
         }
     };
 
-    // Simple terminate function - direct action with reason
+    // Simple terminate function - direct action with reason and police report
     const handleTerminate = async (therapist) => {
+        // Step 1: Show modal to get reason
         const { value: reason } = await Swal.fire({
             title: 'Confirm Termination',
-            text: `Please provide a reason for terminating ${therapist.name}:`,
-            input: 'textarea',
-            inputPlaceholder: 'Enter termination reason...',
-            inputValidator: (value) => {
-                if (!value) {
-                    return 'You need to provide a reason!';
-                }
-            },
+            html: `
+                <div style="text-align: left;">
+                    <p style="margin-bottom: 15px;">Please provide a reason for terminating ${therapist.name}:</p>
+                    <textarea id="termination-reason" class="swal2-textarea" placeholder="Enter termination reason..." style="width: 100%; min-height: 80px; margin-bottom: 15px;"></textarea>
+                    
+                    <label style="display: block; margin-bottom: 10px; font-weight: 600;">Upload Police Report (PDF, JPG, PNG):</label>
+                    <input type="file" id="police-report" accept=".pdf,.jpg,.jpeg,.png" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" />
+                    <p style="font-size: 12px; color: #6b7280; margin-top: 5px;">Maximum file size: 5MB</p>
+                </div>
+            `,
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#6B7280',
             confirmButtonText: 'Terminate',
-            cancelButtonText: 'Cancel'
+            cancelButtonText: 'Cancel',
+            preConfirm: () => {
+                const reasonValue = document.getElementById('termination-reason').value;
+                const fileInput = document.getElementById('police-report');
+                const file = fileInput.files[0];
+
+                if (!reasonValue || !reasonValue.trim()) {
+                    Swal.showValidationMessage('You need to provide a reason!');
+                    return false;
+                }
+
+                // Validate file if provided
+                if (file) {
+                    const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                    if (!validTypes.includes(file.type)) {
+                        Swal.showValidationMessage('Only PDF, JPG, and PNG files are allowed!');
+                        return false;
+                    }
+
+                    const maxSize = 5 * 1024 * 1024; // 5MB
+                    if (file.size > maxSize) {
+                        Swal.showValidationMessage('File size must be less than 5MB!');
+                        return false;
+                    }
+                }
+
+                return {
+                    reason: reasonValue,
+                    file: file
+                };
+            }
         });
 
         if (reason) {
@@ -198,18 +231,24 @@ const ResignTerminate = () => {
                 const token = localStorage.getItem('token');
                 const spaId = getSpaId();
 
-                // Update therapist status in database
+                // Create FormData to send file and data
+                const formData = new FormData();
+                formData.append('status', 'terminated');
+                formData.append('spa_id', spaId);
+                formData.append('reason', reason.reason);
+
+                if (reason.file) {
+                    formData.append('police_report', reason.file);
+                }
+
+                // Update therapist status in database with file upload
                 const response = await fetch(`/api/admin-spa-new/therapists/${therapist.id}/status`, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+                        'Authorization': `Bearer ${token}`
+                        // Don't set Content-Type header - browser will set it automatically with boundary for multipart/form-data
                     },
-                    body: JSON.stringify({
-                        status: 'terminated',
-                        spa_id: spaId,
-                        reason: reason
-                    })
+                    body: formData
                 });
 
                 if (response.ok) {

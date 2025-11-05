@@ -51,6 +51,7 @@ const ManageSpas = () => {
         }
     }, [spas, searchQuery, activeTab, approvedSubCategory]);
 
+
     // Enhanced helper function to parse JSON document fields
     const parseJsonField = (field) => {
         if (!field) return null;
@@ -852,286 +853,287 @@ const ManageSpas = () => {
             </div>
 
             {/* Spa Details Modal */}
+            {/* Spa Details Modal */}
             {showDetailsModal && selectedSpa && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                            <h3 className="text-lg font-semibold text-gray-800">Spa Details</h3>
-                            <button
-                                onClick={() => setShowDetailsModal(false)}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                <FiX size={24} />
-                            </button>
-                        </div>
-
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Basic Information */}
-                                <div className="space-y-4">
-                                    <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Basic Information</h4>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Spa Name</label>
-                                        <p className="text-sm text-gray-900">{selectedSpa.spa_name || selectedSpa.name || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Reference Number</label>
-                                        <p className="text-sm text-gray-900">{selectedSpa.reference_number || `SPA-${selectedSpa.spa_id}` || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Contact Phone</label>
-                                        <p className="text-sm text-gray-900">{selectedSpa.contact_phone || selectedSpa.phone || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Status</label>
-                                        <div className="mt-1">{getStatusBadge(selectedSpa)}</div>
-                                    </div>
-                                </div>
-
-                                {/* Owner Information */}
-                                <div className="space-y-4">
-                                    <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Owner Information</h4>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Owner Name</label>
-                                        <p className="text-sm text-gray-900">
-                                            {selectedSpa.owner_name ||
-                                                (selectedSpa.owner_fname && selectedSpa.owner_lname ?
-                                                    `${selectedSpa.owner_fname} ${selectedSpa.owner_lname}` : 'N/A')
-                                            }
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Email</label>
-                                        <p className="text-sm text-gray-900">{selectedSpa.email || 'N/A'}</p>
-                                    </div>
-                                </div>
-
-                                {/* Address Information */}
-                                <div className="space-y-4">
-                                    <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Address Information</h4>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Address</label>
-                                        <p className="text-sm text-gray-900">
-                                            {selectedSpa.address || selectedSpa.city || 'N/A'}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Registration Information */}
-                                <div className="space-y-4">
-                                    <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Registration Information</h4>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Registration Date</label>
-                                        <p className="text-sm text-gray-900">
-                                            {selectedSpa.created_at ? new Date(selectedSpa.created_at).toLocaleString() : 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Annual Payment Status</label>
-                                        <p className="text-sm text-gray-900">
-                                            {selectedSpa.payment_status === 'paid' || selectedSpa.annual_payment_status === 'paid' ?
-                                                <span className="text-green-600 font-medium">✅ Paid</span> :
-                                                selectedSpa.payment_status === 'overdue' || selectedSpa.annual_payment_status === 'overdue' ?
-                                                    <span className="text-red-600 font-medium">⚠️ Overdue</span> :
-                                                    <span className="text-orange-600 font-medium">⏳ Pending</span>
-                                            }
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Payment Method</label>
-                                        <p className="text-sm text-gray-900">
-                                            {selectedSpa.payment_method ?
-                                                (selectedSpa.payment_method === 'bank_transfer' ? 'Bank Transfer' : 'Card Payment') :
-                                                'Not specified'
-                                            }
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Next Payment Due</label>
-                                        <p className="text-sm text-gray-900">
-                                            {selectedSpa.next_payment_date ?
-                                                new Date(selectedSpa.next_payment_date).toLocaleDateString() :
-                                                'Not set'
-                                            }
-                                        </p>
-                                    </div>
-                                    {selectedSpa.blacklist_reason && (
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-500">Blacklist Reason</label>
-                                            <p className="text-sm text-red-600">{selectedSpa.blacklist_reason}</p>
-                                        </div>
-                                    )}
-                                    {selectedSpa.reject_reason && (
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-500">Rejection Reason</label>
-                                            <p className="text-sm text-red-600">{selectedSpa.reject_reason}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Registration Payment Details */}
-                            {selectedSpa.payments && selectedSpa.payments.length > 0 && (
-                                <div className="mt-6 space-y-4">
-                                    <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Registration Payment Details</h4>
-                                    {selectedSpa.payments.map((payment, index) => (
-                                        <div key={payment.payment_id} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4">
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-500">Payment Type</label>
-                                                <p className="text-sm text-gray-900 capitalize">{payment.payment_type || 'Registration Fee'}</p>
-                                            </div>
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-500">Amount</label>
-                                                <p className="text-sm text-gray-900">
-                                                    {payment.amount ? `LKR ${parseFloat(payment.amount).toLocaleString()}` : 'N/A'}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-500">Payment Status</label>
-                                                <div className="mt-1">
-                                                    {payment.payment_status === 'completed' || payment.payment_status === 'paid' ? (
-                                                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                            ✅ Paid
-                                                        </span>
-                                                    ) : payment.payment_status === 'pending' || payment.payment_status === 'pending_approval' ? (
-                                                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                            ⏳ Pending
-                                                        </span>
-                                                    ) : payment.payment_status === 'rejected' ? (
-                                                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                                            ❌ Rejected
-                                                        </span>
-                                                    ) : (
-                                                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                                                            {payment.payment_status || 'Unknown'}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-500">Created Date</label>
-                                                <p className="text-sm text-gray-900">
-                                                    {payment.payment_created_at ? new Date(payment.payment_created_at).toLocaleDateString() : 'N/A'}
-                                                </p>
-                                            </div>
-                                            {(payment.slip_path || payment.bank_slip_path) && (
-                                                <div className="md:col-span-2">
-                                                    <label className="text-sm font-medium text-gray-500">Payment Slip</label>
-                                                    <div className="mt-2 flex gap-2">
-                                                        <button
-                                                            onClick={() => handleViewPaymentSlip(payment.slip_path || payment.bank_slip_path)}
-                                                            className="flex items-center gap-1 px-3 py-1 bg-[#001F3F] text-white text-xs rounded hover:bg-opacity-90 transition-colors"
-                                                        >
-                                                            <FiEye size={12} /> View Slip
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDownloadPaymentSlip(payment.slip_path || payment.bank_slip_path, `payment-slip-${payment.payment_reference || payment.payment_id}`)}
-                                                            className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-opacity-90 transition-colors"
-                                                        >
-                                                            <FiDownload size={12} /> Download
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Documents Section */}
-                            <div className="mt-6 space-y-4">
-                                <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Documents & Certificates</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {(() => {
-                                        const documents = [
-                                            { key: 'form1_certificate', label: 'Form 1 Certificate', path: selectedSpa.form1_certificate_path },
-                                            { key: 'spa_banner_photos', label: 'Spa Banner Photos', path: selectedSpa.spa_banner_photos_path },
-                                            { key: 'nic_front', label: 'NIC Front', path: selectedSpa.nic_front_path },
-                                            { key: 'nic_back', label: 'NIC Back', path: selectedSpa.nic_back_path },
-                                            { key: 'br_attachment', label: 'Business Registration', path: selectedSpa.br_attachment_path },
-                                            { key: 'other_document', label: 'Other Documents', path: selectedSpa.other_document_path }
-                                        ];
-
-                                        return documents.map(doc => (
-                                            <div key={doc.key} className={`border rounded-lg p-3 ${doc.path ? 'hover:bg-gray-50' : 'bg-gray-50'}`}>
-                                                <label className="text-sm font-medium text-gray-700 block mb-2">{doc.label}</label>
-                                                {doc.path ? (
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => handleViewDocument(selectedSpa.spa_id, doc.key)}
-                                                            className="flex items-center gap-1 px-3 py-1 bg-[#001F3F] text-white text-xs rounded hover:bg-opacity-90 transition-colors"
-                                                        >
-                                                            <FiEye size={12} /> View
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDownloadDocument(selectedSpa.spa_id, doc.key)}
-                                                            className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-opacity-90 transition-colors"
-                                                        >
-                                                            <FiDownload size={12} /> Download
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-xs text-gray-400">No document uploaded</p>
-                                                )}
-                                            </div>
-                                        ));
-                                    })()}
-                                </div>
-
-
-
-                                {/* No Documents Message */}
-                                {!selectedSpa.certificate_path && !selectedSpa.form1_certificate_path &&
-                                    !selectedSpa.nic_front_path && !selectedSpa.nic_back_path &&
-                                    !selectedSpa.br_attachment_path && !selectedSpa.other_document_path && (
-                                        <div className="text-center py-4 text-gray-500">
-                                            <FiFileText className="mx-auto text-2xl text-gray-300 mb-2" />
-                                            <p className="text-sm">No documents uploaded</p>
-                                        </div>
-                                    )}
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50">
+                    <div className="flex min-h-screen items-center justify-center p-4">
+                        <div className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-gray-800">Spa Details</h3>
                                 <button
                                     onClick={() => setShowDetailsModal(false)}
-                                    className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                                    className="text-gray-400 hover:text-gray-600"
                                 >
-                                    Close
+                                    <FiX size={24} />
                                 </button>
-                                {(selectedSpa.verification_status === 'pending' || selectedSpa.status === 'pending') && (
-                                    <>
-                                        <button
-                                            onClick={() => {
-                                                setShowDetailsModal(false);
-                                                handleApprove(selectedSpa);
-                                            }}
-                                            className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700"
-                                        >
-                                            Approve
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowDetailsModal(false);
-                                                handleReject(selectedSpa);
-                                            }}
-                                            className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700"
-                                        >
-                                            Reject
-                                        </button>
-                                    </>
+                            </div>
+
+                            <div className="p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Basic Information */}
+                                    <div className="space-y-4">
+                                        <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Basic Information</h4>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Spa Name</label>
+                                            <p className="text-sm text-gray-900">{selectedSpa.spa_name || selectedSpa.name || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Reference Number</label>
+                                            <p className="text-sm text-gray-900">{selectedSpa.reference_number || `SPA-${selectedSpa.spa_id}` || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Contact Phone</label>
+                                            <p className="text-sm text-gray-900">{selectedSpa.contact_phone || selectedSpa.phone || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Status</label>
+                                            <div className="mt-1">{getStatusBadge(selectedSpa)}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Owner Information */}
+                                    <div className="space-y-4">
+                                        <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Owner Information</h4>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Owner Name</label>
+                                            <p className="text-sm text-gray-900">
+                                                {selectedSpa.owner_name ||
+                                                    (selectedSpa.owner_fname && selectedSpa.owner_lname ?
+                                                        `${selectedSpa.owner_fname} ${selectedSpa.owner_lname}` : 'N/A')
+                                                }
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Email</label>
+                                            <p className="text-sm text-gray-900">{selectedSpa.email || 'N/A'}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Address Information */}
+                                    <div className="space-y-4">
+                                        <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Address Information</h4>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Address</label>
+                                            <p className="text-sm text-gray-900">
+                                                {selectedSpa.address || selectedSpa.city || 'N/A'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Registration Information */}
+                                    <div className="space-y-4">
+                                        <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Registration Information</h4>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Registration Date</label>
+                                            <p className="text-sm text-gray-900">
+                                                {selectedSpa.created_at ? new Date(selectedSpa.created_at).toLocaleString() : 'N/A'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Annual Payment Status</label>
+                                            <p className="text-sm text-gray-900">
+                                                {selectedSpa.payment_status === 'paid' || selectedSpa.annual_payment_status === 'paid' ?
+                                                    <span className="text-green-600 font-medium">✅ Paid</span> :
+                                                    selectedSpa.payment_status === 'overdue' || selectedSpa.annual_payment_status === 'overdue' ?
+                                                        <span className="text-red-600 font-medium">⚠️ Overdue</span> :
+                                                        <span className="text-orange-600 font-medium">⏳ Pending</span>
+                                                }
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Payment Method</label>
+                                            <p className="text-sm text-gray-900">
+                                                {selectedSpa.payment_method ?
+                                                    (selectedSpa.payment_method === 'bank_transfer' ? 'Bank Transfer' : 'Card Payment') :
+                                                    'Not specified'
+                                                }
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Next Payment Due</label>
+                                            <p className="text-sm text-gray-900">
+                                                {selectedSpa.next_payment_date ?
+                                                    new Date(selectedSpa.next_payment_date).toLocaleDateString() :
+                                                    'Not set'
+                                                }
+                                            </p>
+                                        </div>
+                                        {selectedSpa.blacklist_reason && (
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-500">Blacklist Reason</label>
+                                                <p className="text-sm text-red-600">{selectedSpa.blacklist_reason}</p>
+                                            </div>
+                                        )}
+                                        {selectedSpa.reject_reason && (
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-500">Rejection Reason</label>
+                                                <p className="text-sm text-red-600">{selectedSpa.reject_reason}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Registration Payment Details */}
+                                {selectedSpa.payments && selectedSpa.payments.length > 0 && (
+                                    <div className="mt-6 space-y-4">
+                                        <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Registration Payment Details</h4>
+                                        {selectedSpa.payments.map((payment, index) => (
+                                            <div key={payment.payment_id} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4">
+                                                <div>
+                                                    <label className="text-sm font-medium text-gray-500">Payment Type</label>
+                                                    <p className="text-sm text-gray-900 capitalize">{payment.payment_type || 'Registration Fee'}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-sm font-medium text-gray-500">Amount</label>
+                                                    <p className="text-sm text-gray-900">
+                                                        {payment.amount ? `LKR ${parseFloat(payment.amount).toLocaleString()}` : 'N/A'}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-sm font-medium text-gray-500">Payment Status</label>
+                                                    <div className="mt-1">
+                                                        {payment.payment_status === 'completed' || payment.payment_status === 'paid' ? (
+                                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                                ✅ Paid
+                                                            </span>
+                                                        ) : payment.payment_status === 'pending' || payment.payment_status === 'pending_approval' ? (
+                                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                                ⏳ Pending
+                                                            </span>
+                                                        ) : payment.payment_status === 'rejected' ? (
+                                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                                                ❌ Rejected
+                                                            </span>
+                                                        ) : (
+                                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                                                {payment.payment_status || 'Unknown'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="text-sm font-medium text-gray-500">Created Date</label>
+                                                    <p className="text-sm text-gray-900">
+                                                        {payment.payment_created_at ? new Date(payment.payment_created_at).toLocaleDateString() : 'N/A'}
+                                                    </p>
+                                                </div>
+                                                {(payment.slip_path || payment.bank_slip_path) && (
+                                                    <div className="md:col-span-2">
+                                                        <label className="text-sm font-medium text-gray-500">Payment Slip</label>
+                                                        <div className="mt-2 flex gap-2">
+                                                            <button
+                                                                onClick={() => handleViewPaymentSlip(payment.slip_path || payment.bank_slip_path)}
+                                                                className="flex items-center gap-1 px-3 py-1 bg-[#001F3F] text-white text-xs rounded hover:bg-opacity-90 transition-colors"
+                                                            >
+                                                                <FiEye size={12} /> View Slip
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDownloadPaymentSlip(payment.slip_path || payment.bank_slip_path, `payment-slip-${payment.payment_reference || payment.payment_id}`)}
+                                                                className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-opacity-90 transition-colors"
+                                                            >
+                                                                <FiDownload size={12} /> Download
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
-                                {((selectedSpa.verification_status === 'approved' || selectedSpa.status === 'verified' || selectedSpa.status === 'approved') && !selectedSpa.blacklist_reason) && (
+
+                                {/* Documents Section */}
+                                <div className="mt-6 space-y-4">
+                                    <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Documents & Certificates</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {(() => {
+                                            const documents = [
+                                                { key: 'form1_certificate', label: 'Form 1 Certificate', path: selectedSpa.form1_certificate_path },
+                                                { key: 'spa_banner_photos', label: 'Spa Banner Photos', path: selectedSpa.spa_banner_photos_path },
+                                                { key: 'nic_front', label: 'NIC Front', path: selectedSpa.nic_front_path },
+                                                { key: 'nic_back', label: 'NIC Back', path: selectedSpa.nic_back_path },
+                                                { key: 'br_attachment', label: 'Business Registration', path: selectedSpa.br_attachment_path },
+                                                { key: 'other_document', label: 'Other Documents', path: selectedSpa.other_document_path }
+                                            ];
+
+                                            return documents.map(doc => (
+                                                <div key={doc.key} className={`border rounded-lg p-3 ${doc.path ? 'hover:bg-gray-50' : 'bg-gray-50'}`}>
+                                                    <label className="text-sm font-medium text-gray-700 block mb-2">{doc.label}</label>
+                                                    {doc.path ? (
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => handleViewDocument(selectedSpa.spa_id, doc.key)}
+                                                                className="flex items-center gap-1 px-3 py-1 bg-[#001F3F] text-white text-xs rounded hover:bg-opacity-90 transition-colors"
+                                                            >
+                                                                <FiEye size={12} /> View
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDownloadDocument(selectedSpa.spa_id, doc.key)}
+                                                                className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-opacity-90 transition-colors"
+                                                            >
+                                                                <FiDownload size={12} /> Download
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs text-gray-400">No document uploaded</p>
+                                                    )}
+                                                </div>
+                                            ));
+                                        })()}
+                                    </div>
+
+                                    {/* No Documents Message */}
+                                    {!selectedSpa.certificate_path && !selectedSpa.form1_certificate_path &&
+                                        !selectedSpa.nic_front_path && !selectedSpa.nic_back_path &&
+                                        !selectedSpa.br_attachment_path && !selectedSpa.other_document_path && (
+                                            <div className="text-center py-4 text-gray-500">
+                                                <FiFileText className="mx-auto text-2xl text-gray-300 mb-2" />
+                                                <p className="text-sm">No documents uploaded</p>
+                                            </div>
+                                        )}
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-200">
                                     <button
-                                        onClick={() => {
-                                            setShowDetailsModal(false);
-                                            handleBlacklist(selectedSpa);
-                                        }}
-                                        className="px-4 py-2 text-sm bg-orange-600 text-white rounded hover:bg-orange-700"
+                                        onClick={() => setShowDetailsModal(false)}
+                                        className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
                                     >
-                                        Add to Blacklist
+                                        Close
                                     </button>
-                                )}
+                                    {(selectedSpa.verification_status === 'pending' || selectedSpa.status === 'pending') && (
+                                        <>
+                                            <button
+                                                onClick={() => {
+                                                    setShowDetailsModal(false);
+                                                    handleApprove(selectedSpa);
+                                                }}
+                                                className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                                            >
+                                                Approve
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowDetailsModal(false);
+                                                    handleReject(selectedSpa);
+                                                }}
+                                                className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                                            >
+                                                Reject
+                                            </button>
+                                        </>
+                                    )}
+                                    {((selectedSpa.verification_status === 'approved' || selectedSpa.status === 'verified' || selectedSpa.status === 'approved') && !selectedSpa.blacklist_reason) && (
+                                        <button
+                                            onClick={() => {
+                                                setShowDetailsModal(false);
+                                                handleBlacklist(selectedSpa);
+                                            }}
+                                            className="px-4 py-2 text-sm bg-orange-600 text-white rounded hover:bg-orange-700"
+                                        >
+                                            Add to Blacklist
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
